@@ -19,6 +19,7 @@ This is a Java Maven CLI application using Quarkus framework with LangChain4j fo
 ```bash
 mvn clean compile          # Compile the project
 mvn clean package          # Package the application
+mvn package -Dnative       # Build native image
 mvn test                   # Run tests
 mvn quarkus:dev            # Run in development mode with hot reload
 ```
