@@ -277,7 +277,7 @@ Success!
 
 ### Proxy Non-Compliance with RFC 7235
 
-**Critical Discovery**: The container proxy infrastructure at `21.0.0.77:15004` (response headers show `server: envoy`) is **not HTTP-compliant** for CONNECT tunnel authentication.
+**Critical Discovery**: The container HTTP proxy at `21.0.0.77:15004` (response headers show `server: envoy`) is **not HTTP-compliant** for CONNECT tunnel authentication.
 
 **Note**: While response headers indicate Envoy, we cannot definitively determine which component in the network path generates this response. There may be authentication gateways, load balancers, or other intermediaries involved.
 
@@ -386,7 +386,7 @@ User-Agent: Apache-Maven/3.9.11 (Java 21.0.8; Linux 4.4.0)
 3. ~~Are there known restrictions on Java networking in this container?~~ **ANSWERED**: Yes, Java 17+ disables Basic auth for proxy tunneling by default
 4. ~~Is there a Maven mirror/proxy we should be using instead?~~ **ANSWERED**: The HTTP proxy is correctly configured via `HTTPS_PROXY`
 5. ~~Are outbound HTTPS connections from Java intentionally blocked?~~ **ANSWERED**: No, but they require proxy authentication
-6. **NEW**: Can the proxy infrastructure be fixed to return `407 Proxy Authentication Required` with `Proxy-Authenticate` header instead of the non-compliant `401 Unauthorized` with `www-authenticate`?
+6. **NEW**: Can the HTTP proxy be fixed to return `407 Proxy Authentication Required` with `Proxy-Authenticate` header instead of the non-compliant `401 Unauthorized` with `www-authenticate`?
 
 ## Conclusion
 
@@ -396,7 +396,7 @@ User-Agent: Apache-Maven/3.9.11 (Java 21.0.8; Linux 4.4.0)
 
 **FINAL SOLUTION**: Maven builds work successfully! The root causes were:
 
-1. **Container proxy HTTP non-compliance**: The proxy infrastructure returns `401 Unauthorized` (RFC 7235 violation) instead of `407 Proxy Authentication Required` for CONNECT tunnel authentication
+1. **Container HTTP proxy non-compliance**: The HTTP proxy returns `401 Unauthorized` (RFC 7235 violation) instead of `407 Proxy Authentication Required` for CONNECT tunnel authentication
 2. **Maven 3.9.x transport change**: New native HTTP transport uses challenge-response authentication and fails when receiving non-compliant 401 responses
 3. **Java 17+ security restriction**: Basic authentication is disabled by default for CONNECT tunneling
 
