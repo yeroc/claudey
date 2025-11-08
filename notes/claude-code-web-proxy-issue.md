@@ -8,8 +8,6 @@
 
 The Claude Code on the web container environment uses an HTTP proxy (response headers indicate `server: envoy`) that **violates RFC 7235** when handling CONNECT tunnel authentication. Instead of returning `407 Proxy Authentication Required` with a `Proxy-Authenticate` header, it returns `401 Unauthorized` with a `www-authenticate` header.
 
-**Note**: While the response includes `server: envoy`, we cannot definitively determine which component in the network path is generating this non-compliant response. There may be authentication gateways, load balancers, or other intermediaries involved.
-
 This non-compliance breaks any HTTP client that uses standard challenge-response authentication, including:
 - Maven 3.9.x+ (native HTTP transport)
 - Modern Java HttpClient implementations expecting RFC compliance
