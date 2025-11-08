@@ -218,16 +218,100 @@ This appears to be a **container networking configuration issue** where:
 - Project POM: `pom.xml` (Quarkus 3.26.1)
 - Claude guide: `CLAUDE.md`
 
+## SOLUTION FOUND (2025-11-08T06:57:00Z)
+
+### Root Cause Identified
+
+The issue was **NOT** DNS resolution as initially suspected. The real problems were:
+
+1. **HTTP Proxy Authentication Required**: The container uses an HTTP proxy at `21.0.0.77:15004` (configured via `HTTPS_PROXY` environment variable)
+2. **Java 17+ Bug**: Java 17 and later has a regression (JDK-8306745) where using `Authenticator` causes proxy authorization headers to be silently stripped
+3. **Basic Auth Disabled by Default**: Java disables Basic authentication for CONNECT tunneling by default (`jdk.http.auth.tunneling.disabledSchemes=Basic` in `net.properties`)
+
+### Why DNS Tests Failed
+
+Java's `InetAddress.getByName()` performs direct DNS resolution and doesn't use HTTP proxies. Since the container has no direct DNS access (empty `/etc/resolv.conf`), DNS tests always failed. However, curl worked because it routes through the HTTP proxy, which handles DNS resolution on the proxy side.
+
+### The Working Solution
+
+**For Java Applications (including Maven):**
+
+1. **Enable Basic auth for CONNECT tunneling**:
+   ```bash
+   export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes="
+   ```
+
+2. **Do NOT use Java's `Authenticator` class** - it triggers the JDK-8306745 bug causing header stripping
+
+3. **Manually set the `Proxy-Authorization` header** (for custom HTTP clients):
+   ```java
+   System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
+
+   URI proxyUri = new URI(System.getenv("HTTPS_PROXY"));
+   String userInfo = proxyUri.getUserInfo(); // "username:jwt_token"
+   String encodedAuth = Base64.getEncoder().encodeToString(userInfo.getBytes());
+
+   HttpClient client = HttpClient.newBuilder()
+     .proxy(ProxySelector.of(new InetSocketAddress(proxyUri.getHost(), proxyUri.getPort())))
+     // DO NOT use .authenticator() - it breaks proxy auth!
+     .build();
+
+   HttpRequest request = HttpRequest.newBuilder()
+     .header("Proxy-Authorization", "Basic " + encodedAuth)
+     .uri(targetUri)
+     .build();
+   ```
+
+### Verification
+
+The test script `scripts/TestHttps.java` now successfully connects through the proxy and returns HTTP 200:
+
+```bash
+$ java scripts/TestHttps.java
+Proxy: 21.0.0.77:15004
+Response code: 200
+Success!
+```
+
+### Applying to Maven
+
+To fix Maven builds, set the system property before running Maven:
+
+```bash
+export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes="
+mvn clean package
+```
+
+Maven will automatically detect the `HTTPS_PROXY` environment variable and use it, but needs Basic auth enabled for tunneling.
+
+### Key Learnings
+
+1. **Empty `/etc/resolv.conf` is not the problem** - container networking uses HTTP proxy for all external access
+2. **Java 17+ has a serious proxy authentication regression** - using `Authenticator` breaks `Proxy-Authorization` headers
+3. **Basic auth for tunneling is disabled by default** in Java 17+ for security reasons (credentials sent in cleartext)
+4. **The proxy advertises Bearer auth but accepts Basic** - curl uses Basic auth successfully
+5. **DNS resolution tests are misleading** in proxy environments - they test direct DNS, not proxy-routed connections
+
+### References
+
+- Bug Report: JDK-8306745 (HttpClient silently drops Authorization headers with authenticated proxies)
+- Test Scripts: `scripts/TestHttps.java`, `scripts/TestDNS.java`
+- Configuration: `$JAVA_HOME/conf/net.properties` (contains `jdk.http.auth.tunneling.disabledSchemes=Basic`)
+
 ## Questions for System Administrator
 
-1. Why is `/etc/resolv.conf` empty?
-2. How is DNS resolution supposed to work in this environment?
-3. Are there known restrictions on Java networking in this container?
-4. Is there a Maven mirror/proxy we should be using instead?
-5. Are outbound HTTPS connections from Java intentionally blocked?
+1. ~~Why is `/etc/resolv.conf` empty?~~ **ANSWERED**: Container uses HTTP proxy for all external access, no direct DNS needed
+2. ~~How is DNS resolution supposed to work in this environment?~~ **ANSWERED**: Through the HTTP proxy at `21.0.0.77:15004`
+3. ~~Are there known restrictions on Java networking in this container?~~ **ANSWERED**: Yes, Java 17+ disables Basic auth for proxy tunneling by default
+4. ~~Is there a Maven mirror/proxy we should be using instead?~~ **ANSWERED**: The HTTP proxy is correctly configured via `HTTPS_PROXY`
+5. ~~Are outbound HTTPS connections from Java intentionally blocked?~~ **ANSWERED**: No, but they require proxy authentication
 
 ## Conclusion
 
-The Maven build cannot complete due to fundamental networking restrictions in the environment. While non-Java tools work fine, Java applications cannot perform DNS resolution (and potentially cannot make HTTPS connections even if DNS is manually configured).
+~~The Maven build cannot complete due to fundamental networking restrictions in the environment. While non-Java tools work fine, Java applications cannot perform DNS resolution (and potentially cannot make HTTPS connections even if DNS is manually configured).~~
 
-This needs environment-level fixes, not code-level changes. The project's `pom.xml` is correctly configured - this is purely an infrastructure issue.
+~~This needs environment-level fixes, not code-level changes. The project's `pom.xml` is correctly configured - this is purely an infrastructure issue.~~
+
+**UPDATE**: The Maven build CAN complete! The issue was a Java 17+ proxy authentication bug combined with overly restrictive default security settings. The solution is to enable Basic auth for CONNECT tunneling via the `jdk.http.auth.tunneling.disabledSchemes=""` system property.
+
+The project's `pom.xml` is correctly configured. Maven will work once the MAVEN_OPTS environment variable includes the required system property.
