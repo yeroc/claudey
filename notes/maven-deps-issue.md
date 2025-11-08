@@ -397,11 +397,158 @@ User-Agent: Apache-Maven/3.9.11 (Java 21.0.8; Linux 4.4.0)
 3. **Java 17+ security restriction**: Basic authentication is disabled by default for CONNECT tunneling
 
 **Working Configuration**:
+
+1. **Create `~/.m2/settings.xml`** with proxy credentials:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                              http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <proxies>
+    <proxy>
+      <id>container-proxy</id>
+      <active>true</active>
+      <protocol>https</protocol>
+      <host>21.0.0.9</host>
+      <port>15004</port>
+      <username>container_container_011CUurpgkapzArANsfBvYER--claude_code_remote--steep-gloomy-hasty-hatch</username>
+      <password>jwt_eyJ0eXAi...</password>
+    </proxy>
+  </proxies>
+</settings>
+```
+
+Extract credentials from `HTTPS_PROXY` environment variable (format: `http://user:password@host:port`).
+
+2. **Run Maven** with Wagon transport and Basic auth enabled:
+
 ```bash
 export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon"
 mvn clean package
 ```
 
-This forces Maven to use the legacy Wagon transport (Apache HttpClient 4.5), which uses **preemptive proxy authentication** and never receives the non-compliant 401 response. Combined with enabling Basic auth for tunneling, Maven successfully downloads all dependencies and builds the project.
+This forces Maven to use the legacy Wagon transport (Apache HttpClient 4.5), which uses **preemptive proxy authentication** (reading credentials from settings.xml and sending them on the first CONNECT request). Combined with enabling Basic auth for tunneling, Maven successfully downloads all dependencies and builds the project.
 
 The project's `pom.xml` is correctly configured. The issue is entirely related to the non-compliant proxy and incompatibility between Maven's new HTTP transport and the proxy's authentication behavior.
+
+---
+
+## Appendix: Diagnostic Commands
+
+### Testing Proxy Response Without Credentials
+
+To capture the 401 response from the proxy:
+
+```bash
+# Extract proxy host/port without credentials
+python3 -c "
+import urllib.parse
+import os
+proxy = os.getenv('HTTPS_PROXY')
+parsed = urllib.parse.urlparse(proxy)
+print(f'{parsed.scheme}://{parsed.hostname}:{parsed.port}')
+"
+
+# Test with curl (shows 401 with Bearer challenge)
+curl -x http://21.0.0.9:15004 -I https://repo.maven.apache.org/maven2/ 2>&1
+```
+
+Expected output:
+```
+curl: (56) CONNECT tunnel failed, response 401
+HTTP/1.1 401 Unauthorized
+www-authenticate: Bearer realm=""
+content-length: 14
+content-type: text/plain
+date: Sat, 08 Nov 2025 07:21:26 GMT
+server: envoy
+connection: close
+```
+
+### Capturing Curl's Preemptive Authentication
+
+To verify curl sends Proxy-Authorization on first request:
+
+```bash
+curl -v -I https://repo.maven.apache.org/maven2/ 2>&1 | grep -A5 "CONNECT\|Proxy-Authorization"
+```
+
+Look for:
+```
+> CONNECT repo.maven.apache.org:443 HTTP/1.1
+> Host: repo.maven.apache.org:443
+> Proxy-Authorization: Basic <base64-encoded-credentials>
+```
+
+### Capturing Maven Native Transport Behavior (Fails)
+
+To see Maven's new transport sending CONNECT without credentials:
+
+```bash
+strace -f -e trace=write -s 2000 mvn clean package 2>&1 | grep -A1 "CONNECT repo" | head -6
+```
+
+Look for:
+```
+CONNECT repo.maven.apache.org:443 HTTP/1.1
+Host: repo.maven.apache.org
+User-Agent: Apache-Maven/3.9.11 (Java 21.0.8; Linux 4.4.0)
+```
+
+Note: **No `Proxy-Authorization` header** - Maven native transport expects 407 challenge.
+
+### Capturing Maven Wagon Transport Behavior (Works)
+
+To verify Wagon sends credentials preemptively:
+
+```bash
+strace -f -e trace=write -s 2000 bash -c 'MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon" mvn dependency:get -Dartifact=org.apache.commons:commons-lang3:3.14.0' 2>&1 | grep -A1 "CONNECT repo" | head -6
+```
+
+Look for:
+```
+CONNECT repo.maven.apache.org:443 HTTP/1.1
+Host: repo.maven.apache.org
+User-Agent: Apache-HttpClient/4.5.14 (Java/21.0.8)
+Proxy-Authorization: Basic <base64-encoded-credentials>
+```
+
+Note: **Includes `Proxy-Authorization` header** on first request (preemptive auth).
+
+### Capturing Proxy 401 Response Headers
+
+To see the exact headers returned by the proxy:
+
+```bash
+strace -f -e trace=read,write -s 2000 mvn clean package 2>&1 | grep -A10 "HTTP/1.1 401" | head -50
+```
+
+Look for:
+```
+HTTP/1.1 401 Unauthorized
+www-authenticate: Bearer realm=""
+content-length: 14
+content-type: text/plain
+date: Sat, 08 Nov 2025 07:19:37 GMT
+server: envoy
+connection: close
+
+Jwt is missing
+```
+
+### Testing Java HttpClient Manually
+
+Run the test scripts to verify Java networking:
+
+```bash
+# Test with manual Proxy-Authorization header (works)
+cd scripts
+javac TestHttps.java
+java -Djdk.http.auth.tunneling.disabledSchemes= TestHttps
+
+# Test with Authenticator (fails due to JDK-8306745)
+javac TestHttpsWithAuthenticator.java
+java -Djdk.http.auth.tunneling.disabledSchemes= TestHttpsWithAuthenticator
+```
