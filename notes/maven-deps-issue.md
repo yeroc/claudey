@@ -279,8 +279,6 @@ Success!
 
 **Critical Discovery**: The container HTTP proxy at `21.0.0.77:15004` (response headers show `server: envoy`) is **not HTTP-compliant** for CONNECT tunnel authentication.
 
-**Note**: While response headers indicate Envoy, we cannot definitively determine which component in the network path generates this response. There may be authentication gateways, load balancers, or other intermediaries involved.
-
 #### RFC 7235 Specification
 
 Per RFC 7235 (HTTP/1.1 Authentication):
