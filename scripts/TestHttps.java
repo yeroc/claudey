@@ -12,12 +12,9 @@ public class TestHttps {
     try {
       // Parse proxy from environment
       URI proxyUri = new URI(System.getenv("HTTPS_PROXY"));
-      String[] parts = proxyUri.getUserInfo().split(":", 2);
-      String proxyUser = parts[0];
-      String proxyPass = parts[1];
+      String userInfo = proxyUri.getUserInfo();
 
       System.out.println("Proxy: " + proxyUri.getHost() + ":" + proxyUri.getPort());
-      System.out.println("User: " + proxyUser);
 
       // Create HttpClient with proxy (NO authenticator)
       HttpClient client = HttpClient.newBuilder()
@@ -25,9 +22,8 @@ public class TestHttps {
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
-      // Manually create Proxy-Authorization header
-      String auth = proxyUser + ":" + proxyPass;
-      String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+      // Use Basic auth with full username:jwt credentials like curl does
+      String encodedAuth = Base64.getEncoder().encodeToString(userInfo.getBytes());
 
       HttpRequest request = HttpRequest.newBuilder()
         .uri(new URI("https://repo.maven.apache.org/maven2/"))
