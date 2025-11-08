@@ -273,30 +273,107 @@ Response code: 200
 Success!
 ```
 
+### Proxy Non-Compliance with RFC 7235
+
+**Critical Discovery**: The container proxy (Envoy at `21.0.0.77:15004`) is **not HTTP-compliant** for CONNECT tunnel authentication.
+
+#### RFC 7235 Specification
+
+Per RFC 7235 (HTTP/1.1 Authentication):
+
+- **401 Unauthorized** (Section 3.1): "The origin server MUST send a WWW-Authenticate header field containing at least one challenge applicable to the target resource."
+  - Use case: The **origin server** requires authentication
+  - Required header: `WWW-Authenticate`
+
+- **407 Proxy Authentication Required** (Section 3.2): "The proxy MUST send a Proxy-Authenticate header field containing a challenge applicable to that proxy for the target resource."
+  - Use case: The **proxy** requires authentication
+  - Required header: `Proxy-Authenticate`
+
+#### Actual Proxy Behavior (Non-Compliant)
+
+When authentication is missing, the proxy returns:
+
+```
+HTTP/1.1 401 Unauthorized
+www-authenticate: Bearer realm=""
+content-length: 14
+content-type: text/plain
+
+Jwt is missing
+```
+
+**Violations**:
+1. **Wrong status code**: Returns `401` instead of `407` for proxy authentication
+2. **Wrong header name**: Uses `www-authenticate` (lowercase, for origin servers) instead of `Proxy-Authenticate` (for proxies)
+3. **Misleading auth scheme**: Advertises `Bearer` authentication but actually accepts Basic auth
+
+This non-compliance causes standard HTTP clients (including Maven's new transport) to misinterpret the challenge as coming from the origin server rather than the proxy.
+
 ### Applying to Maven
 
-To fix Maven builds, set the system property before running Maven:
+#### Working Solution: Use Wagon Transport
+
+Maven 3.9.x changed from Wagon (Apache HttpClient 4.5) to a new native HTTP transport (maven-resolver-transport-http). The new transport **fails** with this non-compliant proxy because it interprets the 401 as an origin server challenge, not a proxy challenge.
+
+**Solution**: Force Maven to use the legacy Wagon transport, which uses **preemptive authentication**:
 
 ```bash
-export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes="
+export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon"
 mvn clean package
 ```
 
-Maven will automatically detect the `HTTPS_PROXY` environment variable and use it, but needs Basic auth enabled for tunneling.
+**Why this works**:
+1. **Wagon uses preemptive proxy authentication**: Apache HttpClient 4.5.14 reads credentials from `~/.m2/settings.xml` and sends `Proxy-Authorization` header on the **first** CONNECT request
+2. **No challenge-response needed**: Since credentials are sent immediately (like curl), Wagon never receives the non-compliant 401 response
+3. **Basic auth enabled**: The `jdk.http.auth.tunneling.disabledSchemes=""` property allows Basic auth for CONNECT tunneling
+
+#### Why Native Transport Fails
+
+Maven's native HTTP transport (maven-resolver-transport-http) uses **challenge-response authentication**:
+1. Send CONNECT without credentials
+2. Receive proxy challenge (expects **407** with `Proxy-Authenticate`)
+3. Retry CONNECT with `Proxy-Authorization` header
+
+When the proxy returns 401 instead of 407, Maven's native transport treats it as an **origin server** authentication challenge and doesn't use the configured proxy credentials from `settings.xml`.
+
+#### Verification (strace evidence)
+
+**Wagon (works)**:
+```
+CONNECT repo.maven.apache.org:443 HTTP/1.1
+Host: repo.maven.apache.org
+User-Agent: Apache-HttpClient/4.5.14 (Java/21.0.8)
+Proxy-Authorization: Basic <credentials>
+```
+→ Sends credentials on first request (preemptive)
+
+**Native transport (fails)**:
+```
+CONNECT repo.maven.apache.org:443 HTTP/1.1
+Host: repo.maven.apache.org
+User-Agent: Apache-Maven/3.9.11 (Java 21.0.8; Linux 4.4.0)
+```
+→ No `Proxy-Authorization` header, receives 401, interprets as server challenge, fails
 
 ### Key Learnings
 
 1. **Empty `/etc/resolv.conf` is not the problem** - container networking uses HTTP proxy for all external access
-2. **Java 17+ has a serious proxy authentication regression** - using `Authenticator` breaks `Proxy-Authorization` headers
+2. **Java 17+ has a serious proxy authentication regression** - using `Authenticator` breaks `Proxy-Authorization` headers (JDK-8306745)
 3. **Basic auth for tunneling is disabled by default** in Java 17+ for security reasons (credentials sent in cleartext)
-4. **The proxy advertises Bearer auth but accepts Basic** - curl uses Basic auth successfully
-5. **DNS resolution tests are misleading** in proxy environments - they test direct DNS, not proxy-routed connections
+4. **The proxy is HTTP non-compliant** - returns 401 instead of 407, violating RFC 7235 Section 3.2
+5. **Maven 3.9.x changed transports** - new native transport uses challenge-response, old Wagon uses preemptive auth
+6. **Preemptive authentication works around non-compliant proxies** - curl and Wagon send credentials immediately
+7. **DNS resolution tests are misleading** in proxy environments - they test direct DNS, not proxy-routed connections
 
 ### References
 
-- Bug Report: JDK-8306745 (HttpClient silently drops Authorization headers with authenticated proxies)
-- Test Scripts: `scripts/TestHttps.java`, `scripts/TestDNS.java`
-- Configuration: `$JAVA_HOME/conf/net.properties` (contains `jdk.http.auth.tunneling.disabledSchemes=Basic`)
+- **RFC 7235**: HTTP/1.1 Authentication - https://datatracker.ietf.org/doc/html/rfc7235
+  - Section 3.1: 401 Unauthorized (origin server authentication)
+  - Section 3.2: 407 Proxy Authentication Required (proxy authentication)
+- **JDK-8306745**: HttpClient silently drops Authorization headers with authenticated proxies
+- **Test Scripts**: `scripts/TestHttps.java`, `scripts/TestHttpsWithAuthenticator.java`, `scripts/TestDNS.java`
+- **Configuration**: `$JAVA_HOME/conf/net.properties` (contains `jdk.http.auth.tunneling.disabledSchemes=Basic`)
+- **Maven Settings**: `~/.m2/settings.xml` (proxy configuration)
 
 ## Questions for System Administrator
 
@@ -305,6 +382,7 @@ Maven will automatically detect the `HTTPS_PROXY` environment variable and use i
 3. ~~Are there known restrictions on Java networking in this container?~~ **ANSWERED**: Yes, Java 17+ disables Basic auth for proxy tunneling by default
 4. ~~Is there a Maven mirror/proxy we should be using instead?~~ **ANSWERED**: The HTTP proxy is correctly configured via `HTTPS_PROXY`
 5. ~~Are outbound HTTPS connections from Java intentionally blocked?~~ **ANSWERED**: No, but they require proxy authentication
+6. **NEW**: Can the Envoy proxy configuration be fixed to return `407 Proxy Authentication Required` with `Proxy-Authenticate` header instead of the non-compliant `401 Unauthorized` with `www-authenticate`?
 
 ## Conclusion
 
@@ -312,6 +390,18 @@ Maven will automatically detect the `HTTPS_PROXY` environment variable and use i
 
 ~~This needs environment-level fixes, not code-level changes. The project's `pom.xml` is correctly configured - this is purely an infrastructure issue.~~
 
-**UPDATE**: The Maven build CAN complete! The issue was a Java 17+ proxy authentication bug combined with overly restrictive default security settings. The solution is to enable Basic auth for CONNECT tunneling via the `jdk.http.auth.tunneling.disabledSchemes=""` system property.
+**FINAL SOLUTION**: Maven builds work successfully! The root causes were:
 
-The project's `pom.xml` is correctly configured. Maven will work once the MAVEN_OPTS environment variable includes the required system property.
+1. **Container proxy HTTP non-compliance**: The Envoy proxy returns `401 Unauthorized` (RFC 7235 violation) instead of `407 Proxy Authentication Required` for CONNECT tunnel authentication
+2. **Maven 3.9.x transport change**: New native HTTP transport uses challenge-response authentication and fails when receiving non-compliant 401 responses
+3. **Java 17+ security restriction**: Basic authentication is disabled by default for CONNECT tunneling
+
+**Working Configuration**:
+```bash
+export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon"
+mvn clean package
+```
+
+This forces Maven to use the legacy Wagon transport (Apache HttpClient 4.5), which uses **preemptive proxy authentication** and never receives the non-compliant 401 response. Combined with enabling Basic auth for tunneling, Maven successfully downloads all dependencies and builds the project.
+
+The project's `pom.xml` is correctly configured. The issue is entirely related to the non-compliant proxy and incompatibility between Maven's new HTTP transport and the proxy's authentication behavior.
