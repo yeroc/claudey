@@ -224,26 +224,26 @@ This appears to be a **container networking configuration issue** where:
 
 The issue was **NOT** DNS resolution as initially suspected. The real problems were:
 
-1. **HTTP Proxy Authentication Required**: The container uses an HTTP proxy at `21.0.0.77:15004` (configured via `HTTPS_PROXY` environment variable)
-2. **Java 17+ Bug**: Java 17 and later has a regression (JDK-8306745) where using `Authenticator` causes proxy authorization headers to be silently stripped
-3. **Basic Auth Disabled by Default**: Java disables Basic authentication for CONNECT tunneling by default (`jdk.http.auth.tunneling.disabledSchemes=Basic` in `net.properties`)
+1. **HTTP Proxy Non-Compliance**: The container proxy at `21.0.0.77:15004` returns `401 Unauthorized` instead of the RFC-compliant `407 Proxy Authentication Required`
+2. **Basic Auth Disabled by Default**: Java disables Basic authentication for CONNECT tunneling by default (`jdk.http.auth.tunneling.disabledSchemes=Basic` in `net.properties`)
+3. **HTTP Proxy Authentication Required**: Proxy credentials must be provided (configured via `HTTPS_PROXY` environment variable)
+
+**Note**: JDK-8306745 (Authenticator bug) only affected diagnostic test script development, not the core Maven issue. The Authenticator was never invoked because the proxy returned 401 instead of 407.
 
 ### Why DNS Tests Failed
 
 Java's `InetAddress.getByName()` performs direct DNS resolution and doesn't use HTTP proxies. Since the container has no direct DNS access (empty `/etc/resolv.conf`), DNS tests always failed. However, curl worked because it routes through the HTTP proxy, which handles DNS resolution on the proxy side.
 
-### The Working Solution
+### The Working Solution for Custom Java HTTP Clients
 
-**For Java Applications (including Maven):**
+**For testing/diagnostic purposes only** (Maven solution is different - see "Applying to Maven" section below):
 
 1. **Enable Basic auth for CONNECT tunneling**:
    ```bash
-   export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes="
+   export JAVA_OPTS="-Djdk.http.auth.tunneling.disabledSchemes="
    ```
 
-2. **Do NOT use Java's `Authenticator` class** - it triggers the JDK-8306745 bug causing header stripping
-
-3. **Manually set the `Proxy-Authorization` header** (for custom HTTP clients):
+2. **Use preemptive authentication by manually setting the `Proxy-Authorization` header**:
    ```java
    System.setProperty("jdk.http.auth.tunneling.disabledSchemes", "");
 
@@ -253,7 +253,7 @@ Java's `InetAddress.getByName()` performs direct DNS resolution and doesn't use 
 
    HttpClient client = HttpClient.newBuilder()
      .proxy(ProxySelector.of(new InetSocketAddress(proxyUri.getHost(), proxyUri.getPort())))
-     // DO NOT use .authenticator() - it breaks proxy auth!
+     // Note: Do NOT use .authenticator() - won't be called due to 401 vs 407 issue
      .build();
 
    HttpRequest request = HttpRequest.newBuilder()
@@ -261,6 +261,8 @@ Java's `InetAddress.getByName()` performs direct DNS resolution and doesn't use 
      .uri(targetUri)
      .build();
    ```
+
+**Why this works**: By sending credentials preemptively (on the first request), we bypass the broken challenge-response flow entirely. The proxy receives valid credentials immediately and never sends the non-compliant 401 response.
 
 ### Verification
 
@@ -358,11 +360,11 @@ User-Agent: Apache-Maven/3.9.11 (Java 21.0.8; Linux 4.4.0)
 ### Key Learnings
 
 1. **Empty `/etc/resolv.conf` is not the problem** - container networking uses HTTP proxy for all external access
-2. **Java 17+ has a serious proxy authentication regression** - using `Authenticator` breaks `Proxy-Authorization` headers (JDK-8306745)
-3. **Basic auth for tunneling is disabled by default** in Java 17+ for security reasons (credentials sent in cleartext)
-4. **The proxy is HTTP non-compliant** - returns 401 instead of 407, violating RFC 7235 Section 3.2
-5. **Maven 3.9.x changed transports** - new native transport uses challenge-response, old Wagon uses preemptive auth
-6. **Preemptive authentication works around non-compliant proxies** - curl and Wagon send credentials immediately
+2. **The proxy is HTTP non-compliant** - returns 401 instead of 407, violating RFC 7235 Section 3.2
+3. **Maven 3.9.x changed transports** - new native transport uses challenge-response auth (expects 407), old Wagon uses preemptive auth
+4. **Preemptive authentication works around non-compliant proxies** - curl and Wagon send credentials immediately, bypassing the challenge-response flow
+5. **Basic auth for tunneling is disabled by default** in Java 17+ for security reasons (credentials sent in cleartext) - must be explicitly enabled via `jdk.http.auth.tunneling.disabledSchemes=""`
+6. **JDK-8306745 is a red herring** - this Authenticator bug only affected our diagnostic test scripts, not the Maven build itself (Authenticator was never called due to 401 vs 407 issue)
 7. **DNS resolution tests are misleading** in proxy environments - they test direct DNS, not proxy-routed connections
 
 ### References
