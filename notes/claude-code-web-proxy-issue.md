@@ -521,8 +521,6 @@ jdk.http.auth.tunneling.disabledSchemes=Basic
 
 ## Diagnostic Commands Reference
 
-See the [Appendix section in maven-deps-issue.md](./maven-deps-issue.md#appendix-diagnostic-commands) for detailed strace commands and expected outputs.
-
 **Quick verification**:
 
 ```bash
