@@ -1,12 +1,14 @@
 # Claude Code Web Container Proxy RFC Non-Compliance
 
 **Date**: 2025-11-08
-**Issue**: Envoy proxy returns incorrect HTTP status code for CONNECT tunnel authentication
+**Issue**: Container proxy infrastructure returns incorrect HTTP status code for CONNECT tunnel authentication
 **Impact**: Breaks any HTTP client using challenge-response authentication (expects RFC 7235 compliance)
 
 ## Executive Summary
 
-The Claude Code web container environment uses an Envoy HTTP proxy that **violates RFC 7235** when handling CONNECT tunnel authentication. Instead of returning `407 Proxy Authentication Required` with a `Proxy-Authenticate` header, it returns `401 Unauthorized` with a `www-authenticate` header.
+The Claude Code web container environment uses proxy infrastructure (response headers indicate `server: envoy`) that **violates RFC 7235** when handling CONNECT tunnel authentication. Instead of returning `407 Proxy Authentication Required` with a `Proxy-Authenticate` header, it returns `401 Unauthorized` with a `www-authenticate` header.
+
+**Note**: While the response includes `server: envoy`, we cannot definitively determine which component in the network path is generating this non-compliant response. There may be authentication gateways, load balancers, or other intermediaries involved.
 
 This non-compliance breaks any HTTP client that uses standard challenge-response authentication, including:
 - Maven 3.9.x+ (native HTTP transport)
