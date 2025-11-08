@@ -1,12 +1,11 @@
-import java.net.Authenticator;
 import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Base64;
 
 public class TestHttps {
   public static void main(String[] args) {
@@ -20,21 +19,19 @@ public class TestHttps {
       System.out.println("Proxy: " + proxyUri.getHost() + ":" + proxyUri.getPort());
       System.out.println("User: " + proxyUser);
 
-      // Create HttpClient with proxy and authenticator
+      // Create HttpClient with proxy (NO authenticator)
       HttpClient client = HttpClient.newBuilder()
         .proxy(ProxySelector.of(new InetSocketAddress(proxyUri.getHost(), proxyUri.getPort())))
-        .authenticator(new Authenticator() {
-          @Override
-          protected PasswordAuthentication getPasswordAuthentication() {
-            System.out.println("Authenticator called! RequestorType: " + getRequestorType());
-            return new PasswordAuthentication(proxyUser, proxyPass.toCharArray());
-          }
-        })
         .connectTimeout(Duration.ofSeconds(10))
         .build();
 
+      // Manually create Proxy-Authorization header
+      String auth = proxyUser + ":" + proxyPass;
+      String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+
       HttpRequest request = HttpRequest.newBuilder()
         .uri(new URI("https://repo.maven.apache.org/maven2/"))
+        .header("Proxy-Authorization", "Basic " + encodedAuth)
         .method("HEAD", HttpRequest.BodyPublishers.noBody())
         .build();
 
