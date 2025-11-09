@@ -8,15 +8,14 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ### Tasks
 1. **Add Quarkus MCP Extension**
-   - Add `io.quarkiverse.mcp:quarkus-mcp-server-stdio` dependency to pom.xml
+   - Use `mvn quarkus:add-extension -Dextensions="io.quarkiverse.mcp:quarkus-mcp-server-stdio"`
    - Verify MCP extension is compatible with Quarkus 3.27.0 (may need to update from 3.8.1)
 
 2. **Database Dependencies**
-   - Add Quarkus JDBC extension (`quarkus-jdbc`)
-   - Add Agroal connection pooling (`quarkus-agroal`)
-   - Add sample JDBC drivers for testing:
-     - H2 (embedded, for testing)
-     - PostgreSQL (prioritize for native compatibility)
+   - Use `mvn quarkus:add-extension -Dextensions="quarkus-jdbc-postgresql"` for PostgreSQL
+   - Use `mvn quarkus:add-extension -Dextensions="quarkus-jdbc-sqlite"` for SQLite
+   - Use `mvn quarkus:add-extension -Dextensions="quarkus-agroal"` for connection pooling
+   - Note: Quarkus will automatically configure drivers and pooling
 
 3. **Configuration Setup**
    - Create configuration properties class for database settings
@@ -50,7 +49,8 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] **Native startup time <50ms documented**
 
 ### Files to Create/Modify
-- `pom.xml` - Add dependencies and native profile
+- `pom.xml` - Will be updated automatically by `mvn quarkus:add-extension`
+- Native build profile configuration in pom.xml (manual)
 - `src/main/java/org/geekden/mcp/DatabaseMcpServer.java` - Main MCP server class
 - `src/main/java/org/geekden/mcp/config/DatabaseConfig.java` - Configuration
 - `src/main/resources/application.properties` - Quarkus config
@@ -138,9 +138,8 @@ This document breaks down the implementation of the MCP Database Server into man
      - Page size: 100 rows
      - Formula: `LIMIT 100 OFFSET (page-1)*100`
    - Handle database-specific pagination syntax:
-     - PostgreSQL/MySQL: `LIMIT ... OFFSET ...`
-     - SQL Server: `OFFSET ... FETCH NEXT ...`
-     - Oracle: `ROWNUM` or `FETCH FIRST`
+     - PostgreSQL/SQLite: `LIMIT ... OFFSET ...`
+     - Future: SQL Server (`OFFSET ... FETCH NEXT ...`), Oracle (`FETCH FIRST`)
 
 4. **Result Formatting**
    - ASCII table format for result sets
@@ -178,7 +177,7 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] NULL values shown as `<null>`
 - [ ] INSERT/UPDATE/DELETE return affected row counts
 - [ ] DDL statements execute successfully
-- [ ] Works across PostgreSQL and H2 (minimum)
+- [ ] Works with both PostgreSQL and SQLite
 - [ ] **Native binary builds and SQL execution works**
 
 ### Files to Create/Modify
@@ -246,7 +245,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ### Tasks
 1. **Unit Tests**
-   - Test introspection service with H2 database
+   - Test introspection service with SQLite database
    - Test SQL execution with various query types
    - Test pagination logic
    - Test error handling scenarios
@@ -254,7 +253,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 2. **Integration Tests**
    - Test with PostgreSQL (Testcontainers)
-   - Test with H2 (embedded)
+   - Test with SQLite (embedded)
    - Verify cross-database compatibility
    - Test MCP protocol end-to-end
 
@@ -292,7 +291,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ### Acceptance Criteria
 - [ ] All unit tests passing (JVM and native)
-- [ ] Integration tests passing for PostgreSQL and H2
+- [ ] Integration tests passing for PostgreSQL and SQLite
 - [ ] MCP protocol compliance verified
 - [ ] Native binary startup time <50ms
 - [ ] Native binary memory usage <50MB
@@ -342,10 +341,9 @@ This document breaks down the implementation of the MCP Database Server into man
    - Log slow queries (>1 second threshold)
 
 5. **Additional Database Support**
-   - Add and test MySQL driver
-   - Add and test SQLite driver
+   - Add and test MySQL driver (optional)
    - Document database-specific quirks
-   - Update pagination logic for SQL Server and Oracle
+   - Update pagination logic for SQL Server and Oracle (optional)
 
 6. **Native Binary Optimization**
    - Profile native binary performance
@@ -358,7 +356,7 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] Query result cache working with configurable TTL
 - [ ] Cache hit ratio >70% in typical workflows
 - [ ] Performance metrics logged correctly
-- [ ] MySQL and SQLite drivers tested and working
+- [ ] Additional database drivers tested (if implemented)
 - [ ] Native binary size documented
 - [ ] Memory usage stable over 1000+ queries
 
@@ -428,7 +426,7 @@ Track these throughout implementation:
 
 ### Core Requirements (Phases 1-5)
 1. **Functionality**: All spec requirements implemented ✓
-2. **Database Support**: PostgreSQL and H2 tested and working ✓
+2. **Database Support**: PostgreSQL and SQLite tested and working ✓
 3. **Token Efficiency**: Response sizes <50% of JSON equivalent ✓
 4. **Performance**: Query latency <100ms (without caching) ✓
 5. **Reliability**: Error rate <1% in test scenarios ✓
@@ -437,7 +435,7 @@ Track these throughout implementation:
 
 ### Optional Enhancements (Phase 6)
 1. **Caching**: Schema metadata cached, >70% hit ratio ✓
-2. **Additional DBs**: MySQL and SQLite tested ✓
+2. **Additional DBs**: MySQL, SQL Server, Oracle (optional) ✓
 3. **Optimized Performance**: Query latency <50ms with caching ✓
 
 ---
@@ -448,8 +446,9 @@ Before starting implementation, consider:
 
 1. **MCP Extension Version**: Is `quarkus-mcp-server-stdio` stable? Check Quarkiverse docs.
 2. **Quarkus Version**: Spec says 3.27.0, but pom.xml has 3.8.1. Upgrade needed?
-3. **Database Priorities**: PostgreSQL + H2 are core. MySQL/SQLite in Phase 6?
-4. **Pagination Strategy**: Should we auto-detect pagination support per database?
-5. **Native Drivers**: Which JDBC drivers have best GraalVM native support?
-6. **Testing Infrastructure**: Are Testcontainers acceptable for CI/CD?
-7. **Phase 6 Scope**: Is performance optimization needed, or stop after Phase 5?
+3. **Database Priorities**: ✓ PostgreSQL + SQLite are core (confirmed)
+4. **Extension Installation**: ✓ Use `mvn quarkus:add-extension` for all extensions (confirmed)
+5. **Pagination Strategy**: Should we auto-detect pagination support per database?
+6. **Native Drivers**: PostgreSQL and SQLite drivers work well with GraalVM
+7. **Testing Infrastructure**: Are Testcontainers acceptable for CI/CD?
+8. **Phase 6 Scope**: Is performance optimization needed, or stop after Phase 5?
