@@ -53,10 +53,15 @@ This document breaks down the implementation of the MCP Database Server into man
 6. **Native Image Baseline**
    - Configure native build profile in pom.xml
    - Follow Quarkus native build guide: https://quarkus.io/guides/building-native-image
-   - Add GraalVM native hints for JDBC drivers
+   - Add GraalVM native hints for JDBC drivers (if needed)
    - Test basic native compilation
    - Document native build process
-   - Establish baseline startup time and memory usage
+
+7. **Basic Tests**
+   - Unit test for configuration loading (env vars, config file)
+   - Integration test for MCP server startup
+   - Integration test for database connection (PostgreSQL and SQLite)
+   - Verify tests pass in both JVM and native modes
 
 ### Acceptance Criteria
 - [ ] Server starts successfully via stdio (JVM mode)
@@ -64,13 +69,14 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] Database connection established on startup
 - [ ] Environment variables correctly mapped to datasource config
 - [ ] Basic error handling for connection failures
-- [ ] **CLI interface works in JVM mode** (`--cli` flag)
-- [ ] **All CLI commands functional** (introspect, query with pagination)
-- [ ] **CLI uses same table formatting as MCP tools**
-- [ ] **Native binary builds successfully**
-- [ ] **Native binary starts and connects to database**
-- [ ] **Native startup time <50ms documented**
-- [ ] **CLI interface works in native mode**
+- [ ] CLI interface works in JVM mode (`--cli` flag)
+- [ ] All CLI commands functional (introspect, query with pagination)
+- [ ] CLI uses same table formatting as MCP tools
+- [ ] Native binary builds successfully
+- [ ] Native binary starts and connects to database
+- [ ] CLI interface works in native mode
+- [ ] All tests pass in JVM mode
+- [ ] All tests pass in native mode
 
 ### Files to Create/Modify
 - `pom.xml` - Will be updated automatically by `mvn quarkus:add-extension`
@@ -132,7 +138,7 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] Test workflow runs on every push/PR
 - [ ] All tests pass in CI (PostgreSQL and SQLite)
 - [ ] Native build workflow completes successfully
-- [ ] Native binary verified to start in <50ms in CI
+- [ ] Native binary starts successfully in CI
 - [ ] Release workflow creates GitHub release on tags
 - [ ] JAR and native binaries published as release artifacts
 - [ ] Build badges visible in README
@@ -185,8 +191,17 @@ This document breaks down the implementation of the MCP Database Server into man
    - Include relevant metadata (column names, types, constraints)
    - Exclude indexes (as per spec)
 
-5. **Native Compilation Verification**
-   - Test introspection in native mode
+5. **Tests for Introspection**
+   - Unit tests for IntrospectionService with test database
+   - Test all three modes: all schemas, schema tables, table details
+   - Test primary key extraction
+   - Test foreign key extraction
+   - Test NOT NULL constraint detection
+   - Test table formatting (alignment, Unicode separators)
+   - Integration tests with PostgreSQL and SQLite
+
+6. **Native Compilation Verification**
+   - Verify introspection tests pass in native mode
    - Verify DatabaseMetaData works in native binary
    - Add reflection hints if needed
 
@@ -198,7 +213,9 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] Foreign keys displayed correctly
 - [ ] NOT NULL constraints shown
 - [ ] Response uses aligned text table format with Unicode separators
-- [ ] **Native binary builds and introspection works**
+- [ ] All introspection tests pass in JVM mode
+- [ ] All introspection tests pass in native mode
+- [ ] Native binary builds and introspection works
 
 ### Files to Create/Modify
 - `src/main/java/org/geekden/mcp/service/IntrospectionService.java` - Metadata queries
@@ -271,21 +288,34 @@ This document breaks down the implementation of the MCP Database Server into man
    - For DDL: return success message
    - No pagination needed for these query types
 
-7. **Native Compilation Verification**
-   - Test SQL execution in native mode
+7. **Tests for SQL Execution**
+   - Unit tests for SqlExecutionService
+   - Test SELECT query pagination (page 1, page 2, final page)
+   - Test pagination metadata ("more available" vs "no more data")
+   - Test INSERT/UPDATE/DELETE (affected row counts)
+   - Test DDL statements
+   - Test NULL value formatting
+   - Test result set formatting (alignment, Unicode separators)
+   - Test configurable page size (DB_PAGE_SIZE)
+   - Integration tests with PostgreSQL and SQLite
+
+8. **Native Compilation Verification**
+   - Verify SQL execution tests pass in native mode
    - Verify ResultSet handling works in native binary
-   - Test pagination in native mode
+   - Verify pagination works in native mode
 
 ### Acceptance Criteria
-- [ ] SELECT queries return paginated results (100 rows max)
+- [ ] SELECT queries return paginated results (default: 100 rows per page)
 - [ ] Page parameter works correctly (page=2 shows rows 101-200)
-- [ ] Pagination metadata displayed correctly below footer separator
+- [ ] Pagination metadata displayed correctly ("more available" vs "no more data")
 - [ ] Response uses aligned text table format with Unicode separators
 - [ ] NULL values shown as `<null>`
 - [ ] INSERT/UPDATE/DELETE return affected row counts
 - [ ] DDL statements execute successfully
+- [ ] Configurable page size works (DB_PAGE_SIZE)
+- [ ] All SQL execution tests pass in JVM mode
+- [ ] All SQL execution tests pass in native mode
 - [ ] Works with both PostgreSQL and SQLite
-- [ ] **Native binary builds and SQL execution works**
 
 ### Files to Create/Modify
 - `src/main/java/org/geekden/mcp/service/SqlExecutionService.java` - SQL execution
@@ -328,8 +358,18 @@ This document breaks down the implementation of the MCP Database Server into man
    - No stack traces in MCP responses
    - Log full stack traces server-side for debugging
 
-5. **Native Compilation Verification**
-   - Test error handling in native mode
+5. **Tests for Error Handling**
+   - Test SQL syntax error handling (raw error message preserved)
+   - Test permission denied errors
+   - Test constraint violation errors
+   - Test connection failures
+   - Test input validation (invalid page numbers, etc.)
+   - Verify no stack traces in MCP responses
+   - Verify errors logged with full details
+   - Test Agroal pool configuration behaviors
+
+6. **Native Compilation Verification**
+   - Verify error handling tests pass in native mode
    - Verify exception messages work correctly in native binary
    - Ensure database error propagation works in native mode
 
@@ -341,7 +381,8 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] No stack traces in MCP responses (logged server-side only)
 - [ ] All errors logged with full details for debugging
 - [ ] Agroal connection pool properly configured (validation, timeouts, health checks)
-- [ ] **Error handling works identically in native mode**
+- [ ] All error handling tests pass in JVM mode
+- [ ] All error handling tests pass in native mode
 
 ### Files to Create/Modify
 - `src/main/java/org/geekden/mcp/handler/McpErrorHandler.java` - MCP error response formatting
@@ -350,73 +391,69 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ---
 
-## Phase 6: Testing & Documentation
+## Phase 6: Integration Testing & Documentation
 
-**Goal**: Comprehensive testing across multiple databases and complete documentation. Validate native compilation works end-to-end.
+**Goal**: End-to-end integration testing across databases and complete user/developer documentation.
 
 ### Tasks
-1. **Unit Tests**
-   - Test introspection service with SQLite database
-   - Test SQL execution with various query types
-   - Test pagination logic
-   - Test error handling scenarios
-   - Test table formatting edge cases (long strings, NULL values, Unicode characters, column alignment)
+1. **End-to-End Integration Tests**
+   - Full MCP protocol workflow tests (handshake → tool calls → responses)
+   - Real-world scenario tests:
+     - Discover schema → query data → handle errors
+     - Multi-page result navigation
+     - DDL operations followed by introspection
+   - Cross-database compatibility tests (PostgreSQL and SQLite)
+   - CLI interface integration tests (all commands)
+   - Test with Testcontainers for PostgreSQL
+   - Test with embedded SQLite
 
-2. **Integration Tests**
-   - Test with PostgreSQL (Testcontainers)
-   - Test with SQLite (embedded)
-   - Verify cross-database compatibility
-   - Test MCP protocol end-to-end
+2. **Native Binary Validation**
+   - Run complete test suite in native mode
+   - Verify all functionality works in native binary
+   - Document any native-specific issues or workarounds
+   - Performance baseline (startup time, memory usage)
 
-3. **Native Binary Testing**
-   - Run full test suite in native mode
-   - Verify startup time <50ms
-   - Verify memory usage <50MB
-   - Test all MCP tools in native mode
-   - Document native-specific issues and workarounds
-
-4. **MCP Protocol Tests**
-   - Test MCP handshake
-   - Test tool registration
-   - Test tool invocation and responses
-   - Test error responses in MCP format
-
-5. **Documentation**
+3. **User Documentation**
    - Update README with:
+     - Quick start guide
      - Installation instructions (JVM and native)
-     - Configuration guide
-     - Usage examples
+     - Configuration guide (env vars, config files)
+     - Usage examples (MCP mode and CLI mode)
      - Supported databases
-     - Native compilation guide
-   - Create DEVELOPMENT.md with:
+     - Troubleshooting common issues
+   - Create user-facing examples:
+     - Sample database schemas
+     - Common AI agent workflows
+     - Example MCP client configurations
+
+4. **Developer Documentation**
+   - Create DEVELOPMENT.md:
      - Build instructions (JVM and native)
      - Testing guidelines
      - Architecture overview
-     - Troubleshooting section
-   - Add JavaDoc comments to public APIs
-
-6. **Example Scenarios**
-   - Create sample database schemas
-   - Document common AI agent workflows
-   - Add example MCP client interactions
+     - Code structure
+     - Adding new database support
+   - Add JavaDoc to public APIs
+   - Document Agroal pool configuration options
+   - Document native compilation process and requirements
 
 ### Acceptance Criteria
-- [ ] All unit tests passing (JVM and native)
-- [ ] Integration tests passing for PostgreSQL and SQLite
-- [ ] MCP protocol compliance verified
-- [ ] Native binary startup time <50ms
-- [ ] Native binary memory usage <50MB
-- [ ] README complete with usage examples
-- [ ] DEVELOPMENT.md created
-- [ ] JavaDoc coverage >80%
-- [ ] Native compilation documented
+- [ ] All integration tests pass in JVM mode
+- [ ] All integration tests pass in native mode
+- [ ] End-to-end MCP workflows verified
+- [ ] Cross-database compatibility verified (PostgreSQL and SQLite)
+- [ ] CLI integration tests pass
+- [ ] README complete with quick start and examples
+- [ ] DEVELOPMENT.md complete
+- [ ] JavaDoc added to public APIs
+- [ ] Native compilation guide documented
+- [ ] All CI/CD workflows passing
 
 ### Files to Create/Modify
-- `src/test/java/org/geekden/mcp/**/*Test.java` - Test classes
+- `src/test/java/org/geekden/mcp/integration/**/*IntegrationTest.java` - E2E tests
 - `README.md` - User documentation
 - `docs/DEVELOPMENT.md` - Developer documentation
-- `docs/NATIVE.md` - Native compilation guide
-- `docs/examples/*` - Example scenarios
+- `docs/examples/*` - Example scenarios and schemas
 
 ---
 
@@ -497,11 +534,18 @@ For each phase completion:
   - Known issues/limitations
   - Next phase dependencies
 
+### Testing Strategy (TDD Approach)
+- **Each Phase**: Write tests alongside implementation (not after)
+- **Phase 1**: Basic tests for configuration and connectivity
+- **Phases 3-5**: Feature-specific unit and integration tests
+- **Phase 6**: End-to-end integration tests and documentation
+- **Benefit**: Catch bugs early, tests guide design, better code quality
+
 ### Native Compilation Strategy
 - **Phase 1**: Establish native compilation baseline
 - **Phase 2**: Set up CI/CD to verify native builds continuously
-- **Phases 3-5**: Verify each feature works in native mode as it's added
-- **Phase 6**: Comprehensive native testing and documentation
+- **Phases 3-5**: Verify each feature works in native mode as it's added (tests pass in native)
+- **Phase 6**: Comprehensive end-to-end native validation
 - **Benefit**: Issues traced to specific features via CI, not debugging at the end
 
 ### Dependencies Between Phases
@@ -509,7 +553,7 @@ For each phase completion:
 - Phase 3 depends on Phases 1-2 (foundation + CI/CD required)
 - Phase 4 depends on Phases 1-2 (foundation + CI/CD required)
 - Phase 5 can run in parallel with Phases 3-4 (enhance with error handling)
-- Phase 6 depends on Phases 1-5 (testing integration)
+- Phase 6 depends on Phases 1-5 (all features complete for end-to-end testing)
 - Phase 7 depends on Phases 1-6 (all features complete before optimization)
 
 ### Recommended Order
@@ -517,7 +561,7 @@ For each phase completion:
 2. **Phase 2** → CI/CD & Release Pipeline (enables continuous verification)
 3. **Phase 3 + Phase 4** → Can be parallel development (different developers)
 4. **Phase 5** → Integrate error handling into existing code
-5. **Phase 6** → Testing, documentation, and native validation
+5. **Phase 6** → End-to-end integration testing and documentation
 6. **Phase 7** → Optional performance optimization (caching, etc.)
 
 ### Estimated Effort
@@ -542,17 +586,17 @@ Track these throughout implementation:
 ### Core Requirements (Phases 1-6)
 1. **Functionality**: All spec requirements implemented ✓
 2. **Database Support**: PostgreSQL and SQLite tested and working ✓
-3. **Token Efficiency**: Response sizes <50% of JSON equivalent ✓
-4. **Performance**: Query latency <100ms (without caching) ✓
-5. **Reliability**: Error rate <1% in test scenarios ✓
-6. **Code Quality**: Test coverage >80% ✓
-7. **Native Compilation**: Binary builds, starts <50ms, uses <50MB ✓
+3. **Token Efficiency**: Aligned text tables more compact than JSON ✓
+4. **Performance**: Fast query execution and reasonable startup time ✓
+5. **Reliability**: Tests pass consistently across databases ✓
+6. **Code Quality**: Good test coverage with tests written per phase ✓
+7. **Native Compilation**: Binary builds and runs successfully ✓
 8. **CI/CD**: Automated tests, native builds, and releases ✓
 
 ### Optional Enhancements (Phase 7)
-1. **Caching**: Schema metadata cached, >70% hit ratio ✓
+1. **Caching**: Schema metadata cached with good hit ratio ✓
 2. **Additional DBs**: MySQL, SQL Server, Oracle (optional) ✓
-3. **Optimized Performance**: Query latency <50ms with caching ✓
+3. **Optimized Performance**: Improved query latency with caching ✓
 
 ---
 
