@@ -2,6 +2,35 @@
 
 This document breaks down the implementation of the MCP Database Server into manageable phases for handoff and incremental development.
 
+## Implementation Principles
+
+### Platform-First Development
+
+**IMPORTANT**: Always research and leverage platform capabilities before implementing custom solutions.
+
+- **Consult canonical documentation first**: Quarkus, MicroProfile, JDBC specifications
+- **Don't reinvent the wheel**: Use built-in features for:
+  - Configuration management (MicroProfile Config)
+  - Connection pooling (Agroal)
+  - Dependency injection (CDI)
+  - JDBC driver loading (service-loader)
+  - Logging (Quarkus Logging)
+  - Native compilation (Quarkus GraalVM integration)
+- **Research before coding**: Each phase should begin with reviewing relevant platform documentation
+- **Examples of what NOT to implement**:
+  - Custom config file parsers (use MicroProfile Config)
+  - Manual connection pool management (use Agroal)
+  - Custom retry logic for connections (configure Agroal properly)
+  - Manual class loading for JDBC drivers (JDBC 4.0+ service-loader)
+
+**Key Documentation Resources**:
+- Quarkus guides: https://quarkus.io/guides/
+- MicroProfile Config: https://quarkus.io/guides/config-reference
+- Quarkus Datasource/Agroal: https://quarkus.io/guides/datasource
+- Quarkus Native: https://quarkus.io/guides/building-native-image
+
+---
+
 ## Phase 1: Foundation & Project Setup
 
 **Goal**: Establish the base project structure with MCP server capabilities, database connectivity, and native compilation working from the start.
@@ -18,24 +47,31 @@ This document breaks down the implementation of the MCP Database Server into man
    - Note: Quarkus will automatically configure drivers and pooling
 
 3. **Configuration Setup**
-   - Create configuration properties class for database settings
-   - Support multiple config sources (priority order):
-     - Environment variables: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
-     - Runtime config file: `database-server.properties` (or `mcp-db.properties`)
-     - Default `application.properties`
-   - Map to Quarkus datasource config:
-     - `DB_URL` → datasource URL (JDBC URL determines driver via service-loader)
-     - `DB_USERNAME` → datasource username
-     - `DB_PASSWORD` → datasource password
-     - `DB_POOL_SIZE` → connection pool size (default: 1)
-     - `DB_PAGE_SIZE` → page size for query results (default: 100, compile-time config)
-   - Set connection pool to size=1 by default
-   - Note: Driver auto-detected from JDBC URL via JDBC 4.0+ service-loader
+   - **Research Quarkus configuration system first**:
+     - Read Quarkus Config documentation: https://quarkus.io/guides/config-reference
+     - Understand MicroProfile Config (handles env vars, files, priority automatically)
+     - Review datasource configuration: https://quarkus.io/guides/datasource
+   - **Use Quarkus's built-in config system** (don't implement custom config loading):
+     - Leverage MicroProfile Config for environment variables and config files
+     - Use `@ConfigProperty` or `@ConfigMapping` for type-safe config
+     - Configure Quarkus datasource properties:
+       - `quarkus.datasource.jdbc.url` (from DB_URL env var or config file)
+       - `quarkus.datasource.username` (from DB_USERNAME)
+       - `quarkus.datasource.password` (from DB_PASSWORD)
+       - `quarkus.datasource.jdbc.max-size` (from DB_POOL_SIZE, default: 1)
+     - Add custom config for page size (DB_PAGE_SIZE, default: 100)
+   - **Config priority** (handled by Quarkus automatically):
+     - Environment variables (highest)
+     - System properties
+     - `application.properties` or custom config file
+   - Note: JDBC drivers auto-detected via service-loader (JDBC 4.0+)
 
 4. **Basic MCP Server Structure**
-   - Create MCP server class (implements MCP stdio server interface)
+   - **Research Quarkiverse MCP extension first**: https://github.com/quarkiverse/quarkus-mcp-server
+   - Review extension documentation for stdio server implementation
+   - Create MCP server class using extension's interfaces/annotations
    - Verify server starts and responds to MCP protocol handshake
-   - Add basic logging configuration
+   - Use Quarkus Logging (don't add custom logging framework)
 
 5. **CLI Interface for Testing**
    - Add `--cli` flag for one-shot CLI commands
@@ -338,13 +374,16 @@ This document breaks down the implementation of the MCP Database Server into man
    - Log full exception details for debugging
 
 2. **Connection Pool Configuration**
-   - Configure Agroal connection pool properly:
-     - Connection validation settings
-     - Connection timeout settings
-     - Pool size (default: 1)
-     - Idle timeout and max lifetime
-   - Let Agroal handle connection resilience (no manual retry logic needed)
-   - Configure appropriate health checks
+   - **Research Agroal documentation first**: https://quarkus.io/guides/datasource#agroal
+   - **Configure Agroal via Quarkus properties** (don't implement custom pooling):
+     - `quarkus.datasource.jdbc.max-size` - Pool size (default: 1)
+     - `quarkus.datasource.jdbc.min-size` - Minimum connections
+     - `quarkus.datasource.jdbc.validation-query-sql` - Connection validation
+     - `quarkus.datasource.jdbc.acquisition-timeout` - Connection timeout
+     - `quarkus.datasource.jdbc.idle-removal-interval` - Idle timeout
+     - `quarkus.datasource.jdbc.max-lifetime` - Max connection lifetime
+   - Let Agroal handle connection resilience (no manual retry logic)
+   - Review health check configuration in Quarkus docs
 
 3. **Input Validation**
    - Validate MCP tool parameters
@@ -523,12 +562,15 @@ This document breaks down the implementation of the MCP Database Server into man
 ### Handoff Checklist
 For each phase completion:
 - [ ] All acceptance criteria met (including native compilation)
+- [ ] Platform capabilities researched and leveraged (no reinventing the wheel)
+- [ ] Quarkus/platform documentation consulted for built-in features
 - [ ] Code committed to feature branch
 - [ ] Tests passing (JVM and native modes)
 - [ ] Native binary builds successfully
 - [ ] Documentation updated
 - [ ] Pull request created with:
   - Phase summary
+  - Platform features leveraged (e.g., "Used MicroProfile Config instead of custom config")
   - Testing evidence (JVM and native)
   - Native-specific issues encountered
   - Known issues/limitations
