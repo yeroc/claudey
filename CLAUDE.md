@@ -48,15 +48,16 @@ The project includes:
 
 ## Maven Proxy Configuration (Claude Code on the Web)
 
-If Maven fails to download dependencies with proxy errors, you need to configure the Maven proxy settings.
+If Maven fails to download dependencies with proxy errors, you need to configure BOTH the Maven settings.xml AND MAVEN_OPTS environment variables.
 
 **Symptoms:**
 - `mvn clean compile` fails with "Could not transfer artifact"
 - Error shows "Unknown host repo.maven.apache.org" or proxy authentication issues
+- Certificate errors (PKIX path building failed)
 
-**Solution:**
+**Solution (BOTH steps required):**
 
-Create `~/.m2/settings.xml` by parsing the HTTPS_PROXY environment variable:
+**Step 1:** Create `~/.m2/settings.xml` with proxy credentials:
 
 ```bash
 # Create settings.xml with proxy credentials from HTTPS_PROXY
@@ -90,14 +91,34 @@ cat > ~/.m2/settings.xml << EOF
 EOF
 ```
 
+**Step 2:** Set MAVEN_OPTS environment variable (extract from HTTPS_PROXY):
+
+```bash
+# Parse proxy details from HTTPS_PROXY
+PROXY_HOST=$(echo "$HTTPS_PROXY" | sed 's|.*@\([^:]*\):.*|\1|')
+PROXY_PORT=$(echo "$HTTPS_PROXY" | sed 's|.*:\([0-9]*\)$|\1|')
+
+# Set MAVEN_OPTS with proxy configuration
+export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon -Dhttp.proxyHost=${PROXY_HOST} -Dhttp.proxyPort=${PROXY_PORT} -Dhttps.proxyHost=${PROXY_HOST} -Dhttps.proxyPort=${PROXY_PORT}"
+
+# Now run Maven commands
+mvn clean compile
+```
+
+**Why both are required:**
+
+Maven forks child processes during the build. The `.mvn/maven.config` file configures the main Maven process to use Wagon transport, but forked processes inherit environment variables (MAVEN_OPTS) while not automatically inheriting all settings.xml configuration. Both configurations are needed to ensure all processes can reach the proxy.
+
 **Troubleshooting Proxy Errors:**
 
 The Claude Code proxy can be unreliable. Common issues:
 
-1. **503 Service Unavailable with `userName='null'`**: This is misleading - credentials ARE being sent (visible in debug output), but the Claude Code proxy is rejecting the request. The proxy may be overloaded or experiencing issues. Wait and retry.
+1. **503 Service Unavailable**: The Claude Code proxy is overloaded or experiencing issues. Wait and retry.
 
-2. **Unknown host errors**: Proxy credentials may have expired. The HTTPS_PROXY JWT tokens expire after ~4 hours. Re-run the settings.xml creation script above to get fresh credentials.
+2. **Certificate errors (PKIX)**: Java cannot validate SSL certificates through the proxy. This happens with newer GraalVM versions (25+). Use system OpenJDK 21 instead, or set MAVEN_OPTS as shown above.
 
-3. **Intermittent failures**: The proxy may work for some downloads but not others. This is environmental - retry the build.
+3. **Unknown host errors**: Proxy credentials may have expired. The HTTPS_PROXY JWT tokens expire after ~4 hours. Re-run both setup steps above to get fresh credentials.
 
-**Note:** The `.mvn/maven.config` file in this repository already configures Maven to use the Wagon transport with preemptive authentication, which is required for the Claude Code proxy.
+4. **Intermittent failures**: The proxy may work for some downloads but not others. This is environmental - retry the build.
+
+**Note:** The `.mvn/maven.config` file in this repository configures Maven to use the Wagon transport with preemptive authentication, which is the foundation for proxy compatibility, but MAVEN_OPTS must also be set for forked processes.

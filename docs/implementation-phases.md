@@ -88,18 +88,16 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ### Maven Build Notes
 
-**IMPORTANT**: Building requires `~/.m2/settings.xml` for proxy credentials.
-
-The `.mvn/maven.config` file (already in the repository) provides the Wagon transport configuration, so **MAVEN_OPTS is NOT required**.
+**IMPORTANT**: Building requires BOTH `~/.m2/settings.xml` AND `MAVEN_OPTS` environment variable.
 
 ```bash
-# Create settings.xml (one-time setup in Claude Code web environment)
+# Step 1: Create settings.xml (one-time setup in Claude Code web environment)
 mkdir -p ~/.m2
 PROXY_USER=$(echo "$HTTPS_PROXY" | sed 's|http://\([^:]*\):.*|\1|')
 PROXY_PASS=$(echo "$HTTPS_PROXY" | sed 's|http://[^:]*:\([^@]*\)@.*|\1|')
 PROXY_HOST=$(echo "$HTTPS_PROXY" | sed 's|.*@\([^:]*\):.*|\1|')
 PROXY_PORT=$(echo "$HTTPS_PROXY" | sed 's|.*:\([0-9]*\)$|\1|')
-cat > ~/.m2/settings.xml << 'EOF'
+cat > ~/.m2/settings.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -120,16 +118,22 @@ cat > ~/.m2/settings.xml << 'EOF'
 </settings>
 EOF
 
-# Run build (MAVEN_OPTS not needed - .mvn/maven.config handles it)
+# Step 2: Set MAVEN_OPTS with proxy configuration (required for every session)
+export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon -Dhttp.proxyHost=${PROXY_HOST} -Dhttp.proxyPort=${PROXY_PORT} -Dhttps.proxyHost=${PROXY_HOST} -Dhttps.proxyPort=${PROXY_PORT}"
+
+# Now run build
 mvn clean test
 ```
 
 **How it works:**
 - `.mvn/maven.config` (in repo) configures Wagon transport for proxy compatibility
 - `~/.m2/settings.xml` provides proxy credentials (host, port, username, password)
-- Maven automatically combines both configurations
+- `MAVEN_OPTS` ensures forked Maven processes also use the proxy settings
+- **All three are required** - Maven forks child processes that inherit environment variables but not all settings.xml configuration
 
 **Note on 503 errors:** The Claude Code proxy can be unreliable and return intermittent 503 Service Unavailable errors. If builds fail with 503 errors, wait a few moments and retry - these are transient proxy issues, not configuration problems.
+
+**Note on certificate errors (PKIX):** Newer GraalVM versions (25+) have stricter SSL certificate validation. Use system OpenJDK 21 or GraalVM CE 21.0.2 with MAVEN_OPTS set as shown above.
 
 ---
 
