@@ -98,6 +98,21 @@ The Claude Code web proxy requires preemptive authentication, which is non-stand
 
 **Complete Setup (Required for Every Session):**
 
+Use the provided scripts in `bin/`:
+
+```bash
+# 1. Create ~/.m2/settings.xml with proxy credentials
+./bin/setup-maven-proxy.sh
+
+# 2. Set MAVEN_OPTS environment variables
+source bin/maven-env.sh
+
+# 3. Run Maven commands
+mvn clean compile
+```
+
+Or manually:
+
 ```bash
 # Parse proxy from environment
 PROXY_HOST=$(echo "$HTTPS_PROXY" | sed 's|.*@\([^:]*\):.*|\1|')
