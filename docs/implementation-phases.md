@@ -33,6 +33,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 5. **Native Image Baseline**
    - Configure native build profile in pom.xml
+   - Follow Quarkus native build guide: https://quarkus.io/guides/building-native-image
    - Add GraalVM native hints for JDBC drivers
    - Test basic native compilation
    - Document native build process
@@ -452,3 +453,15 @@ Before starting implementation, consider:
 6. **Native Drivers**: PostgreSQL and SQLite drivers work well with GraalVM
 7. **Testing Infrastructure**: Are Testcontainers acceptable for CI/CD?
 8. **Phase 6 Scope**: Is performance optimization needed, or stop after Phase 5?
+
+---
+
+## Reference Documentation
+
+Key resources for implementation:
+
+- **Quarkus Native Build Guide**: https://quarkus.io/guides/building-native-image
+- **Quarkus JDBC**: https://quarkus.io/guides/datasource
+- **Quarkus Agroal**: https://quarkus.io/guides/datasource#agroal
+- **MCP Protocol Specification**: https://modelcontextprotocol.io/
+- **Quarkiverse MCP Extension**: https://github.com/quarkiverse/quarkus-mcp-server
