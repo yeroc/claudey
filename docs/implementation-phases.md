@@ -28,6 +28,7 @@ This document breaks down the implementation of the MCP Database Server into man
      - `DB_USERNAME` → datasource username
      - `DB_PASSWORD` → datasource password
      - `DB_POOL_SIZE` → connection pool size (default: 1)
+     - `DB_PAGE_SIZE` → page size for query results (default: 100, compile-time config)
    - Set connection pool to size=1 by default
    - Note: Driver auto-detected from JDBC URL via JDBC 4.0+ service-loader
 
@@ -224,11 +225,12 @@ This document breaks down the implementation of the MCP Database Server into man
 
 3. **Pagination Logic**
    - Detect if query is pageable (SELECT statements)
+   - Use configurable page size from `DB_PAGE_SIZE` config (default: 100)
    - Inject LIMIT/OFFSET clause:
-     - Page size: 100 rows (fetch 101 to detect more data)
-     - Formula: `LIMIT 101 OFFSET (page-1)*100`
-     - If 101 rows returned → show first 100, mark "more available"
-     - If ≤100 rows returned → show all rows, final page (no "more available")
+     - Fetch `PAGE_SIZE + 1` rows to detect more data
+     - Formula: `LIMIT (PAGE_SIZE + 1) OFFSET (page-1)*PAGE_SIZE`
+     - If `PAGE_SIZE + 1` rows returned → show first `PAGE_SIZE`, mark "more available"
+     - If ≤ `PAGE_SIZE` rows returned → show all rows, mark "no more data"
    - Handle database-specific pagination syntax:
      - PostgreSQL/SQLite: `LIMIT ... OFFSET ...`
      - Future: SQL Server (`OFFSET ... FETCH NEXT ...`), Oracle (`FETCH FIRST`)
@@ -244,7 +246,7 @@ This document breaks down the implementation of the MCP Database Server into man
 5. **Pagination Metadata**
    - Display below footer separator
    - Format when more data available: "Page {n} (more available)"
-   - Format for final page: "Page {n}"
+   - Format for final page: "Page {n} (no more data)"
    - Example with more pages:
      ```
      id  name          email
@@ -261,7 +263,7 @@ This document breaks down the implementation of the MCP Database Server into man
      ──  ────────────  ──────────────────
     201  Alice Wong    alice@example.com
     ──────────────────────────────────────
-     Page 3
+     Page 3 (no more data)
      ```
 
 6. **Non-SELECT Query Handling**
