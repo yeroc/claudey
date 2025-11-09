@@ -31,7 +31,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
-        run: mvn package -Dnative -DskipTests
+        run: mvn -B package -Dnative -DskipTests
         env:
           MAVEN_OPTS: "-Xmx4g"
 
