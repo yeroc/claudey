@@ -56,7 +56,7 @@ If Maven fails to download dependencies with proxy errors, you need to configure
 
 **Solution:**
 
-settings.xml with proxy credentials is SUFFICIENT. No MAVEN_OPTS needed.
+Both settings.xml AND MAVEN_OPTS are required for proxy authentication to work properly.
 
 Create `~/.m2/settings.xml` by parsing the HTTPS_PROXY environment variable:
 
@@ -90,7 +90,12 @@ cat > ~/.m2/settings.xml << EOF
   </proxies>
 </settings>
 EOF
+
+# Also export MAVEN_OPTS with proxy settings
+export MAVEN_OPTS="-Dhttp.proxyHost=${PROXY_HOST} -Dhttp.proxyPort=${PROXY_PORT} -Dhttp.proxyUser=${PROXY_USER} -Dhttp.proxyPassword=${PROXY_PASS} -Dhttps.proxyHost=${PROXY_HOST} -Dhttps.proxyPort=${PROXY_PORT} -Dhttps.proxyUser=${PROXY_USER} -Dhttps.proxyPassword=${PROXY_PASS}"
 ```
+
+Note: You'll need to set MAVEN_OPTS in each shell session, or create a wrapper script. Without MAVEN_OPTS, downloads will fail with "Unknown host" errors even with settings.xml configured.
 
 **Troubleshooting 503 Errors:**
 
