@@ -133,7 +133,7 @@ No raw stack traces exposed to clients.
 
 ## Technical Stack
 
-- **Framework**: Quarkus 3.26.1
+- **Framework**: Quarkus 3.27.0 (LTS)
 - **Language**: Java 21
 - **MCP Extension**: Quarkus MCP Server Stdio (io.quarkiverse.mcp/quarkus-mcp-server-stdio)
 - **Database**: JDBC-compatible databases
