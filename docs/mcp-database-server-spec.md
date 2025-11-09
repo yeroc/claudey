@@ -115,13 +115,17 @@ No raw stack traces exposed to clients.
 ## Configuration
 
 ### Required Environment Variables
-- `DB_URL`: JDBC connection URL (e.g., `jdbc:postgresql://localhost:5432/mydb`)
+- `DB_URL`: JDBC connection URL (e.g., `jdbc:postgresql://localhost:5432/mydb`, `jdbc:sqlite:./test.db`)
 - `DB_USERNAME`: Database username
 - `DB_PASSWORD`: Database password
 
 ### Optional Environment Variables
-- `DB_DRIVER`: JDBC driver class (auto-detected if not specified)
 - `DB_POOL_SIZE`: Connection pool size (default: 1 for single connection)
+
+### Driver Auto-Detection
+- JDBC 4.0+ drivers are auto-detected via service-loader mechanism
+- No need to specify driver class name
+- Driver determined from JDBC URL prefix (e.g., `jdbc:postgresql:` → PostgreSQL driver)
 
 ## Token Efficiency Strategy
 

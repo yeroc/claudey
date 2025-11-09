@@ -20,11 +20,11 @@ This document breaks down the implementation of the MCP Database Server into man
 3. **Configuration Setup**
    - Create configuration properties class for database settings
    - Map environment variables to Quarkus config:
-     - `DB_URL` → datasource URL
+     - `DB_URL` → datasource URL (JDBC URL determines driver via service-loader)
      - `DB_USERNAME` → datasource username
      - `DB_PASSWORD` → datasource password
-     - `DB_DRIVER` → datasource driver (optional, auto-detect)
    - Set connection pool to size=1 by default
+   - Note: Driver auto-detected from JDBC URL via JDBC 4.0+ service-loader
 
 4. **Basic MCP Server Structure**
    - Create MCP server class (implements MCP stdio server interface)
