@@ -48,27 +48,25 @@ The project includes:
 
 ## Maven Proxy Configuration (Claude Code on the Web)
 
-If Maven fails to download dependencies with proxy errors, you need to configure BOTH the Maven settings.xml AND MAVEN_OPTS environment variables.
+**REQUIRED**: Maven builds in Claude Code web environment need BOTH `~/.m2/settings.xml` AND `MAVEN_OPTS`.
 
-**Symptoms:**
-- `mvn clean compile` fails with "Could not transfer artifact"
-- Error shows "Unknown host repo.maven.apache.org" or proxy authentication issues
-- Certificate errors (PKIX path building failed)
+The Claude Code web proxy requires preemptive authentication (non-standard). Three components must be configured:
 
-**Solution (BOTH steps required):**
+1. `.mvn/maven.config` - Forces Wagon transport (already in repository)
+2. `~/.m2/settings.xml` - Provides proxy credentials
+3. `MAVEN_OPTS` - Ensures forked processes inherit proxy configuration
 
-**Step 1:** Create `~/.m2/settings.xml` with proxy credentials:
+**Complete Setup Script:**
 
 ```bash
-# Create settings.xml with proxy credentials from HTTPS_PROXY
-# Format: http://username:password@host:port
-mkdir -p ~/.m2
-
-PROXY_USER=$(echo "$HTTPS_PROXY" | sed 's|http://\([^:]*\):.*|\1|')
-PROXY_PASS=$(echo "$HTTPS_PROXY" | sed 's|http://[^:]*:\([^@]*\)@.*|\1|')
+# Parse proxy from environment
 PROXY_HOST=$(echo "$HTTPS_PROXY" | sed 's|.*@\([^:]*\):.*|\1|')
 PROXY_PORT=$(echo "$HTTPS_PROXY" | sed 's|.*:\([0-9]*\)$|\1|')
+PROXY_USER=$(echo "$HTTPS_PROXY" | sed 's|http://\([^:]*\):.*|\1|')
+PROXY_PASS=$(echo "$HTTPS_PROXY" | sed 's|http://[^:]*:\([^@]*\)@.*|\1|')
 
+# Create settings.xml with proxy credentials
+mkdir -p ~/.m2
 cat > ~/.m2/settings.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
@@ -89,36 +87,17 @@ cat > ~/.m2/settings.xml << EOF
   </proxies>
 </settings>
 EOF
-```
 
-**Step 2:** Set MAVEN_OPTS environment variable (extract from HTTPS_PROXY):
-
-```bash
-# Parse proxy details from HTTPS_PROXY
-PROXY_HOST=$(echo "$HTTPS_PROXY" | sed 's|.*@\([^:]*\):.*|\1|')
-PROXY_PORT=$(echo "$HTTPS_PROXY" | sed 's|.*:\([0-9]*\)$|\1|')
-
-# Set MAVEN_OPTS with proxy configuration
+# Set MAVEN_OPTS for forked processes
 export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon -Dhttp.proxyHost=${PROXY_HOST} -Dhttp.proxyPort=${PROXY_PORT} -Dhttps.proxyHost=${PROXY_HOST} -Dhttps.proxyPort=${PROXY_PORT}"
 
-# Now run Maven commands
+# Verify Java and run build
+java -version
 mvn clean compile
 ```
 
-**Why both are required:**
+**Status:**
+- ✅ **JVM builds**: Work with system OpenJDK 21
+- ❌ **Native builds**: Not yet working with GraalVM CE (under investigation)
 
-Maven forks child processes during the build. The `.mvn/maven.config` file configures the main Maven process to use Wagon transport, but forked processes inherit environment variables (MAVEN_OPTS) while not automatically inheriting all settings.xml configuration. Both configurations are needed to ensure all processes can reach the proxy.
-
-**Troubleshooting Proxy Errors:**
-
-The Claude Code proxy can be unreliable. Common issues:
-
-1. **503 Service Unavailable**: The Claude Code proxy is overloaded or experiencing issues. Wait and retry.
-
-2. **Certificate errors (PKIX)**: Java cannot validate SSL certificates through the proxy. This happens with newer GraalVM versions (25+). Use system OpenJDK 21 instead, or set MAVEN_OPTS as shown above.
-
-3. **Unknown host errors**: Proxy credentials may have expired. The HTTPS_PROXY JWT tokens expire after ~4 hours. Re-run both setup steps above to get fresh credentials.
-
-4. **Intermittent failures**: The proxy may work for some downloads but not others. This is environmental - retry the build.
-
-**Note:** The `.mvn/maven.config` file in this repository configures Maven to use the Wagon transport with preemptive authentication, which is the foundation for proxy compatibility, but MAVEN_OPTS must also be set for forked processes.
+**Note:** Proxy credentials (JWT tokens) expire after ~4 hours. Re-run the setup script with fresh HTTPS_PROXY when expired.
