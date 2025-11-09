@@ -31,7 +31,20 @@ This document breaks down the implementation of the MCP Database Server into man
    - Verify server starts and responds to MCP protocol handshake
    - Add basic logging configuration
 
-5. **Native Image Baseline**
+5. **CLI Interface for Testing**
+   - Add `--cli` flag for one-shot CLI commands
+   - Stateless execution - each command reads DB config from env vars
+   - Commands:
+     - `--cli introspect` - List all schemas/tables
+     - `--cli introspect <schema>` - List tables in schema
+     - `--cli introspect <schema> <table>` - Show table structure
+     - `--cli query "<sql>"` - Execute SQL query (page 1)
+     - `--cli query "<sql>" --page <n>` - Execute SQL query with pagination
+   - Same table formatting as MCP tools
+   - Usage: `./app --cli introspect public` or `./app-native --cli query "SELECT * FROM users"`
+   - Uses same configuration as MCP mode (DB_URL, DB_USERNAME, DB_PASSWORD)
+
+6. **Native Image Baseline**
    - Configure native build profile in pom.xml
    - Follow Quarkus native build guide: https://quarkus.io/guides/building-native-image
    - Add GraalVM native hints for JDBC drivers
@@ -45,15 +58,21 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] Database connection established on startup
 - [ ] Environment variables correctly mapped to datasource config
 - [ ] Basic error handling for connection failures
+- [ ] **CLI interface works in JVM mode** (`--cli` flag)
+- [ ] **All CLI commands functional** (introspect, query with pagination)
+- [ ] **CLI uses same table formatting as MCP tools**
 - [ ] **Native binary builds successfully**
 - [ ] **Native binary starts and connects to database**
 - [ ] **Native startup time <50ms documented**
+- [ ] **CLI interface works in native mode**
 
 ### Files to Create/Modify
 - `pom.xml` - Will be updated automatically by `mvn quarkus:add-extension`
 - Native build profile configuration in pom.xml (manual)
 - `src/main/java/org/geekden/mcp/DatabaseMcpServer.java` - Main MCP server class
 - `src/main/java/org/geekden/mcp/config/DatabaseConfig.java` - Configuration
+- `src/main/java/org/geekden/mcp/cli/CliCommandHandler.java` - CLI command parser and executor
+- `src/main/java/org/geekden/MainApplication.java` - Update to handle `--cli` flag and route to MCP or CLI mode
 - `src/main/resources/application.properties` - Quarkus config
 - `src/main/resources/META-INF/native-image/` - Native image hints (if needed)
 
@@ -217,8 +236,8 @@ This document breaks down the implementation of the MCP Database Server into man
 
 5. **Pagination Metadata**
    - Display below footer separator
-   - Format when more data available: "Page {n} ({count} rows, more available)"
-   - Format for final page: "Page {n} ({count} rows)" or "Page {n} ({count} row)" for singular
+   - Format when more data available: "Page {n} (more available)"
+   - Format for final page: "Page {n}"
    - Example with more pages:
      ```
      id  name          email
@@ -227,7 +246,7 @@ This document breaks down the implementation of the MCP Database Server into man
       2  Jane Smith    <null>
      ... (98 more rows)
      ──────────────────────────────────────
-     Page 1 (100 rows, more available)
+     Page 1 (more available)
      ```
    - Example final page:
      ```
@@ -235,7 +254,7 @@ This document breaks down the implementation of the MCP Database Server into man
      ──  ────────────  ──────────────────
     201  Alice Wong    alice@example.com
     ──────────────────────────────────────
-     Page 3 (1 row)
+     Page 3
      ```
 
 6. **Non-SELECT Query Handling**
