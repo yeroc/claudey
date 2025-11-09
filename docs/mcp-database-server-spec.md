@@ -87,14 +87,13 @@ Execute arbitrary SQL queries with automatic pagination.
 
 **Example Response:**
 ```
-Page 1 of results (more pages available: true)
-
-id  | name          | email
-----|---------------|------------------
-1   | John Doe      | john@example.com
-2   | Jane Smith    | <null>
-...
-(100 rows)
+id  name          email
+──  ────────────  ──────────────────
+ 1  John Doe      john@example.com
+ 2  Jane Smith    <null>
+... (98 more rows)
+──────────────────────────────────────
+Page 1 of results (100 rows, more available)
 ```
 
 ### Resources
@@ -131,7 +130,10 @@ No raw stack traces exposed to clients.
 
 1. **Minimal Tool Count**: Only 2 tools vs. many specialized operations
 2. **Hierarchical Parameters**: Single `introspect` tool handles multiple granularities
-3. **Text Table Format**: More compact than JSON arrays of objects
+3. **Aligned Text Table Format**: More compact than JSON arrays of objects
+   - Column names stated once (not repeated per row)
+   - Minimal Unicode separators for modern aesthetic
+   - Footer separator delimits data from pagination metadata
 4. **Fixed Pagination**: Prevents massive result sets from consuming context
 5. **Metadata Caching**: Schema information cached in-memory, reducing repeated queries
 

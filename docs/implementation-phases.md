@@ -154,7 +154,9 @@ This document breaks down the implementation of the MCP Database Server into man
    - Parse NOT NULL constraints from column metadata
 
 4. **Response Formatting**
-   - Format as ASCII tables for token efficiency
+   - Format as aligned text tables with Unicode separators (modern aesthetic)
+   - Header separator: Unicode light horizontal (──) below column names
+   - Footer separator: full-width Unicode light horizontal
    - Include relevant metadata (column names, types, constraints)
    - Exclude indexes (as per spec)
 
@@ -170,7 +172,7 @@ This document breaks down the implementation of the MCP Database Server into man
 - [ ] Primary keys displayed correctly
 - [ ] Foreign keys displayed correctly
 - [ ] NOT NULL constraints shown
-- [ ] Response uses ASCII table format
+- [ ] Response uses aligned text table format with Unicode separators
 - [ ] **Native binary builds and introspection works**
 
 ### Files to Create/Modify
@@ -206,22 +208,33 @@ This document breaks down the implementation of the MCP Database Server into man
      - Future: SQL Server (`OFFSET ... FETCH NEXT ...`), Oracle (`FETCH FIRST`)
 
 4. **Result Formatting**
-   - ASCII table format for result sets
+   - Aligned text table format with Unicode separators (modern aesthetic)
+   - Header separator: Unicode light horizontal (──) below column names
+   - Footer separator: full-width Unicode light horizontal
    - Column headers in first row
    - NULL values displayed as `<null>`
    - Long text fields included as-is
 
 5. **Pagination Metadata**
-   - Current page number
-   - Has more pages boolean (detect via COUNT or result size)
-   - Row count for current page
-   - Display format:
+   - Display below footer separator
+   - Format: "Page {n} of results ({count} rows, more available)" or "Page {n} of results ({count} rows)"
+   - Example with more pages:
      ```
-     Page 1 of results (more pages available: true)
-
-     [table data]
-
-     (100 rows)
+     id  name          email
+     ──  ────────────  ──────────────────
+      1  John Doe      john@example.com
+      2  Jane Smith    <null>
+     ... (98 more rows)
+     ──────────────────────────────────────
+     Page 1 of results (100 rows, more available)
+     ```
+   - Example final page:
+     ```
+     id  name          email
+     ──  ────────────  ──────────────────
+    201  Alice Wong    alice@example.com
+    ──────────────────────────────────────
+     Page 3 of results (1 row)
      ```
 
 6. **Non-SELECT Query Handling**
@@ -237,7 +250,8 @@ This document breaks down the implementation of the MCP Database Server into man
 ### Acceptance Criteria
 - [ ] SELECT queries return paginated results (100 rows max)
 - [ ] Page parameter works correctly (page=2 shows rows 101-200)
-- [ ] Pagination metadata displayed correctly
+- [ ] Pagination metadata displayed correctly below footer separator
+- [ ] Response uses aligned text table format with Unicode separators
 - [ ] NULL values shown as `<null>`
 - [ ] INSERT/UPDATE/DELETE return affected row counts
 - [ ] DDL statements execute successfully
@@ -313,7 +327,7 @@ This document breaks down the implementation of the MCP Database Server into man
    - Test SQL execution with various query types
    - Test pagination logic
    - Test error handling scenarios
-   - Test ASCII table formatting edge cases
+   - Test table formatting edge cases (long strings, NULL values, Unicode characters, column alignment)
 
 2. **Integration Tests**
    - Test with PostgreSQL (Testcontainers)
