@@ -261,8 +261,8 @@ This document breaks down the implementation of the MCP Database Server into man
      ```
      id  name          email
      ──  ────────────  ──────────────────
-    201  Alice Wong    alice@example.com
-    ──────────────────────────────────────
+     201  Alice Wong    alice@example.com
+     ──────────────────────────────────────
      Page 3 (no more data)
      ```
 
