@@ -71,11 +71,11 @@ Execute arbitrary SQL queries with automatic pagination.
 - `page` (optional integer, default=1): Page number (1-indexed)
 
 **Behavior:**
-- Results limited to 100 rows per page
+- Results limited to configurable page size (default: 100 rows, set via `DB_PAGE_SIZE`)
 - Uses LIMIT/OFFSET for pagination:
-  - Fetches 101 rows to detect if more data exists
-  - Shows first 100 rows if 101 were returned
-  - Shows all rows if ≤100 were returned
+  - Fetches `PAGE_SIZE + 1` rows to detect if more data exists
+  - Shows first `PAGE_SIZE` rows if all `PAGE_SIZE + 1` were returned
+  - Shows all rows if ≤ `PAGE_SIZE` were returned
 - Supports all SQL operations (SELECT, INSERT, UPDATE, DELETE, DDL)
 
 **Response Format:**
@@ -85,7 +85,7 @@ Execute arbitrary SQL queries with automatic pagination.
 - Long text fields returned as-is
 - Pagination metadata (below footer separator):
   - Format with more pages: "Page {n} (more available)"
-  - Format for final page: "Page {n}"
+  - Format for final page: "Page {n} (no more data)"
 
 **Example Response (with more pages):**
 ```
@@ -104,7 +104,7 @@ id  name          email
 ──  ────────────  ──────────────────
 201  Alice Wong    alice@example.com
 ──────────────────────────────────────
-Page 3
+Page 3 (no more data)
 ```
 
 ### Resources
@@ -136,6 +136,7 @@ Configuration can be provided via multiple sources (in priority order):
 
 ### Optional Configuration
 - `DB_POOL_SIZE`: Connection pool size (default: 1 for single connection)
+- `DB_PAGE_SIZE`: Page size for query results (default: 100 rows, compile-time config)
 
 ### Driver Auto-Detection
 - JDBC 4.0+ drivers are auto-detected via service-loader mechanism
