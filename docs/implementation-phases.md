@@ -297,51 +297,55 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ## Phase 5: Error Handling & Robustness
 
-**Goal**: Implement comprehensive error handling with user-friendly messages. Maintain native compilation compatibility.
+**Goal**: Implement proper error handling that passes through database errors to LLMs while ensuring clean MCP responses. Maintain native compilation compatibility.
 
 ### Tasks
-1. **Error Classification**
-   - Create exception hierarchy:
-     - `SqlSyntaxException` - SQL syntax errors
-     - `PermissionDeniedException` - Access denied
-     - `ConnectionException` - Database connection issues
-     - `ConstraintViolationException` - Constraint violations
+1. **Database Error Handling**
+   - Pass through raw database error messages (LLMs understand database errors well)
+   - Catch and wrap SQLExceptions appropriately
+   - Return database error messages in MCP error responses
+   - No need to sanitize or simplify - preserve original error context
+   - Log full exception details for debugging
 
-2. **Error Message Formatting**
-   - Map database exceptions to user-friendly messages:
-     - SQL Syntax: "SQL syntax error: [descriptive message]"
-     - Permission: "Access denied: [operation] on [object]"
-     - Connection: "Database connection error: [details]"
-     - Constraint: "Constraint violation: [constraint name] - [details]"
-   - Strip stack traces from MCP responses
-   - Log full stack traces for debugging
+2. **Connection Pool Configuration**
+   - Configure Agroal connection pool properly:
+     - Connection validation settings
+     - Connection timeout settings
+     - Pool size (default: 1)
+     - Idle timeout and max lifetime
+   - Let Agroal handle connection resilience (no manual retry logic needed)
+   - Configure appropriate health checks
 
-3. **Connection Resilience**
-   - Connection validation before queries
-   - Retry logic for transient failures
-   - Graceful handling of connection pool exhaustion
-
-4. **Input Validation**
+3. **Input Validation**
    - Validate MCP tool parameters
    - Validate pagination parameters (page > 0)
-   - Handle malformed SQL gracefully
+   - Validate schema/table names for introspection
+   - Return clear validation error messages
+
+4. **MCP Error Response Format**
+   - Return errors in proper MCP error format
+   - Include error message from database (unmodified)
+   - No stack traces in MCP responses
+   - Log full stack traces server-side for debugging
 
 5. **Native Compilation Verification**
    - Test error handling in native mode
    - Verify exception messages work correctly in native binary
+   - Ensure database error propagation works in native mode
 
 ### Acceptance Criteria
-- [ ] SQL syntax errors return clean error messages
-- [ ] Permission denied errors are user-friendly
-- [ ] Connection failures handled gracefully
-- [ ] Constraint violations show constraint name and details
-- [ ] No stack traces exposed to MCP clients
+- [ ] Database errors returned in MCP error format with original error messages
+- [ ] SQL syntax errors include raw database error (e.g., PostgreSQL/SQLite syntax errors)
+- [ ] Connection failures handled by Agroal pool configuration
+- [ ] Input validation errors return clear messages
+- [ ] No stack traces in MCP responses (logged server-side only)
 - [ ] All errors logged with full details for debugging
+- [ ] Agroal connection pool properly configured (validation, timeouts, health checks)
 - [ ] **Error handling works identically in native mode**
 
 ### Files to Create/Modify
-- `src/main/java/org/geekden/mcp/exception/*` - Exception classes
-- `src/main/java/org/geekden/mcp/handler/ErrorHandler.java` - Error formatting
+- `src/main/java/org/geekden/mcp/handler/McpErrorHandler.java` - MCP error response formatting
+- `src/main/resources/application.properties` - Agroal pool configuration
 - Update all service and tool classes with error handling
 
 ---

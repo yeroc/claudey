@@ -113,14 +113,18 @@ Not using MCP resources in initial version. May revisit for schema discovery UX 
 
 ## Error Handling
 
-All errors returned as user-friendly messages in tool responses:
+Database errors are passed through to AI agents with original error messages:
 
-- **SQL Syntax Errors**: "SQL syntax error: [descriptive message]"
-- **Permission Denied**: "Access denied: [operation] on [object]"
-- **Connection Failures**: "Database connection error: [details]"
-- **Constraint Violations**: "Constraint violation: [constraint name] - [details]"
+- **SQL Syntax Errors**: Raw database error messages (e.g., PostgreSQL/SQLite syntax errors)
+- **Permission Denied**: Raw database permission errors
+- **Connection Failures**: Connection error details from database/pool
+- **Constraint Violations**: Raw constraint violation messages from database
 
-No raw stack traces exposed to clients.
+Rationale: LLMs are trained on database documentation and error messages, so raw errors provide better context than sanitized versions.
+
+No stack traces exposed to clients (logged server-side only).
+
+Connection resilience handled by Agroal connection pool configuration.
 
 ## Configuration
 
