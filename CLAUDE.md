@@ -92,8 +92,8 @@ cat > ~/.m2/settings.xml << EOF
 EOF
 ```
 
-**Transient 503 Errors:**
+**Troubleshooting 503 Errors:**
 
-If you encounter 503 Service Unavailable errors from Maven Central, these are temporary network issues. The proxy configuration is working correctly - just retry the build.
+If you see 503 Service Unavailable errors with `userName='null'` in the proxy info, the settings.xml file is missing or the proxy credentials have expired. Re-create settings.xml using the script above to get fresh credentials from the HTTPS_PROXY environment variable.
 
 **Note:** The `.mvn/maven.config` file in this repository already configures Maven to use the Wagon transport with preemptive authentication, which is required for the Claude Code proxy.
