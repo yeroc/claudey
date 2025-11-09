@@ -2,6 +2,7 @@ package org.geekden.mcp;
 
 import io.agroal.api.AgroalDataSource;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
 import org.junit.jupiter.api.Test;
@@ -20,20 +21,20 @@ import static org.junit.jupiter.api.Assertions.*;
 class DatabaseConnectionTest {
 
   @Inject
-  AgroalDataSource dataSource;
+  Instance<AgroalDataSource> dataSource;
 
   @Inject
   DatabaseConfig config;
 
   @Test
   void testDataSourceInjection() {
-    assertNotNull(dataSource, "DataSource should be injected");
+    assertNotNull(dataSource, "DataSource instance should be injected");
   }
 
   @Test
   @EnabledIf("isDatabaseConfigured")
   void testDatabaseConnection() throws Exception {
-    try (Connection conn = dataSource.getConnection()) {
+    try (Connection conn = dataSource.get().getConnection()) {
       assertNotNull(conn, "Connection should not be null");
       assertFalse(conn.isClosed(), "Connection should be open");
 
@@ -53,8 +54,8 @@ class DatabaseConnectionTest {
   @EnabledIf("isDatabaseConfigured")
   void testConnectionPooling() throws Exception {
     // Test that we can get multiple connections from the pool
-    try (Connection conn1 = dataSource.getConnection();
-         Connection conn2 = dataSource.getConnection()) {
+    try (Connection conn1 = dataSource.get().getConnection();
+         Connection conn2 = dataSource.get().getConnection()) {
 
       assertNotNull(conn1, "First connection should not be null");
       assertNotNull(conn2, "Second connection should not be null");
@@ -68,7 +69,8 @@ class DatabaseConnectionTest {
   /**
    * Condition for tests that require a configured database.
    */
-  boolean isDatabaseConfigured() {
-    return config.isConfigured();
+  static boolean isDatabaseConfigured() {
+    String dbUrl = System.getenv("DB_URL");
+    return dbUrl != null && !dbUrl.isEmpty();
   }
 }

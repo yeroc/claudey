@@ -2,6 +2,7 @@ package org.geekden.mcp.cli;
 
 import io.agroal.api.AgroalDataSource;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
 import org.jboss.logging.Logger;
@@ -25,7 +26,7 @@ public class CliCommandHandler {
   private static final Logger LOG = Logger.getLogger(CliCommandHandler.class);
 
   @Inject
-  AgroalDataSource dataSource;
+  Instance<AgroalDataSource> dataSource;
 
   @Inject
   DatabaseConfig config;
@@ -69,7 +70,7 @@ public class CliCommandHandler {
   }
 
   private int handleIntrospect(String[] args) {
-    try (Connection conn = dataSource.getConnection()) {
+    try (Connection conn = dataSource.get().getConnection()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
       if (args.length == 1) {

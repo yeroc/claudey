@@ -48,19 +48,29 @@ The project includes:
 
 ## Maven Proxy Configuration (Claude Code on the Web)
 
-If Maven fails to download dependencies with errors like "Unknown host repo.maven.apache.org", you need to configure the Maven proxy settings.
+If Maven fails to download dependencies with proxy errors, you need to configure the Maven proxy settings.
 
 **Symptoms:**
 - `mvn clean compile` fails with "Could not transfer artifact"
-- Error mentions "Unknown host repo.maven.apache.org"
+- Error shows "Unknown host repo.maven.apache.org" or proxy authentication issues
 
 **Solution:**
 
-Create or update `~/.m2/settings.xml` with proxy credentials from environment variables:
+settings.xml with proxy credentials is SUFFICIENT. No MAVEN_OPTS needed.
+
+Create `~/.m2/settings.xml` by parsing the HTTPS_PROXY environment variable:
 
 ```bash
+# Create settings.xml with proxy credentials from HTTPS_PROXY
+# Format: http://username:password@host:port
 mkdir -p ~/.m2
-cat > ~/.m2/settings.xml << 'EOF'
+
+PROXY_USER=$(echo "$HTTPS_PROXY" | sed 's|http://\([^:]*\):.*|\1|')
+PROXY_PASS=$(echo "$HTTPS_PROXY" | sed 's|http://[^:]*:\([^@]*\)@.*|\1|')
+PROXY_HOST=$(echo "$HTTPS_PROXY" | sed 's|.*@\([^:]*\):.*|\1|')
+PROXY_PORT=$(echo "$HTTPS_PROXY" | sed 's|.*:\([0-9]*\)$|\1|')
+
+cat > ~/.m2/settings.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -71,10 +81,10 @@ cat > ~/.m2/settings.xml << 'EOF'
       <id>claude-code-proxy</id>
       <active>true</active>
       <protocol>http</protocol>
-      <host>21.0.0.17</host>
-      <port>15004</port>
-      <username>PROXY_USERNAME_FROM_ENV</username>
-      <password>PROXY_PASSWORD_FROM_ENV</password>
+      <host>${PROXY_HOST}</host>
+      <port>${PROXY_PORT}</port>
+      <username>${PROXY_USER}</username>
+      <password>${PROXY_PASS}</password>
       <nonProxyHosts>localhost|127.0.0.1|169.254.169.254|metadata.google.internal|*.svc.cluster.local|*.local|*.googleapis.com|*.google.com</nonProxyHosts>
     </proxy>
   </proxies>
@@ -82,14 +92,8 @@ cat > ~/.m2/settings.xml << 'EOF'
 EOF
 ```
 
-**To extract credentials from environment:**
+**Transient 503 Errors:**
 
-```bash
-# Extract username and password from HTTPS_PROXY environment variable
-# Format: http://username:password@host:port
-env | grep -i https_proxy
-```
-
-The username and password are embedded in the `HTTPS_PROXY` environment variable.
+If you encounter 503 Service Unavailable errors from Maven Central, these are temporary network issues. The proxy configuration is working correctly - just retry the build.
 
 **Note:** The `.mvn/maven.config` file in this repository already configures Maven to use the Wagon transport with preemptive authentication, which is required for the Claude Code proxy.

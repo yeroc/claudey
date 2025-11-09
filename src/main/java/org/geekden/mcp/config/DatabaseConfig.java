@@ -4,6 +4,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.util.Optional;
+
 /**
  * Database configuration using MicroProfile Config.
  * Environment variables are mapped via application.properties.
@@ -12,27 +14,27 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @RegisterForReflection
 public class DatabaseConfig {
 
-  @ConfigProperty(name = "quarkus.datasource.jdbc.url")
-  String jdbcUrl;
+  @ConfigProperty(name = "DB_URL")
+  Optional<String> jdbcUrl;
 
-  @ConfigProperty(name = "quarkus.datasource.username")
-  String username;
+  @ConfigProperty(name = "DB_USERNAME")
+  Optional<String> username;
 
-  @ConfigProperty(name = "quarkus.datasource.password")
-  String password;
+  @ConfigProperty(name = "DB_PASSWORD")
+  Optional<String> password;
 
   @ConfigProperty(name = "db.page-size", defaultValue = "100")
   int pageSize;
 
-  public String getJdbcUrl() {
+  public Optional<String> getJdbcUrl() {
     return jdbcUrl;
   }
 
-  public String getUsername() {
+  public Optional<String> getUsername() {
     return username;
   }
 
-  public String getPassword() {
+  public Optional<String> getPassword() {
     return password;
   }
 
@@ -41,6 +43,6 @@ public class DatabaseConfig {
   }
 
   public boolean isConfigured() {
-    return jdbcUrl != null && !jdbcUrl.isEmpty();
+    return jdbcUrl.isPresent() && !jdbcUrl.get().isEmpty();
   }
 }
