@@ -56,6 +56,7 @@ jobs:
 
       - name: Run tests with PostgreSQL
         env:
+          DB_KIND: postgresql
           DB_URL: jdbc:postgresql://localhost:5432/testdb
           DB_USERNAME: testuser
           DB_PASSWORD: testpass
