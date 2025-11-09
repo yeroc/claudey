@@ -59,7 +59,72 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ---
 
-## Phase 2: Database Introspection Tool
+## Phase 2: CI/CD & Release Pipeline
+
+**Goal**: Establish GitHub Actions workflows for automated testing, native builds, and release management. Ensures all subsequent phases can leverage CI/CD.
+
+### Tasks
+1. **GitHub Actions: Test Workflow**
+   - Create `.github/workflows/test.yml`
+   - Run on push to all branches and pull requests
+   - Execute Maven tests in JVM mode
+   - Run with PostgreSQL via service containers
+   - Run with SQLite (embedded)
+   - Report test coverage
+   - Fail build on test failures
+
+2. **GitHub Actions: Native Build Workflow**
+   - Create `.github/workflows/native-build.yml`
+   - Run on push to main and pull requests
+   - Setup GraalVM environment
+   - Execute native compilation: `mvn package -Dnative`
+   - Verify native binary starts (<50ms startup)
+   - Test basic MCP handshake in native mode
+   - Archive native binary as artifact
+
+3. **GitHub Actions: Release Workflow**
+   - Create `.github/workflows/release.yml`
+   - Trigger on git tags (e.g., `v1.0.0`)
+   - Build both JVM JAR and native binaries
+   - Create multi-platform native builds (Linux x64, optional: macOS, Windows)
+   - Create GitHub release with:
+     - Release notes
+     - JVM JAR artifact
+     - Native binary artifacts (per platform)
+     - Checksums (SHA256)
+   - Tag with semantic version
+
+4. **Build Optimization**
+   - Configure Maven caching in workflows
+   - Optimize build times (parallel builds if applicable)
+   - Add build badges to README (build status, test coverage)
+
+5. **Documentation**
+   - Document CI/CD pipeline in DEVELOPMENT.md
+   - Add contributing guidelines (CONTRIBUTING.md)
+   - Document release process
+
+### Acceptance Criteria
+- [ ] Test workflow runs on every push/PR
+- [ ] All tests pass in CI (PostgreSQL and SQLite)
+- [ ] Native build workflow completes successfully
+- [ ] Native binary verified to start in <50ms in CI
+- [ ] Release workflow creates GitHub release on tags
+- [ ] JAR and native binaries published as release artifacts
+- [ ] Build badges visible in README
+- [ ] CI/CD documented in DEVELOPMENT.md
+
+### Files to Create/Modify
+- `.github/workflows/test.yml` - Test automation
+- `.github/workflows/native-build.yml` - Native compilation
+- `.github/workflows/release.yml` - Release automation
+- `CONTRIBUTING.md` - Contribution guidelines
+- `README.md` - Add build badges
+- `docs/DEVELOPMENT.md` - CI/CD documentation
+
+---
+
+## Phase 3: Database Introspection Tool
 
 **Goal**: Implement the `introspect` MCP tool with hierarchical schema discovery. Maintain native compilation compatibility.
 
@@ -117,7 +182,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ---
 
-## Phase 3: SQL Execution Tool
+## Phase 4: SQL Execution Tool
 
 **Goal**: Implement the `execute_sql` MCP tool with pagination and result formatting. Maintain native compilation compatibility.
 
@@ -189,7 +254,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ---
 
-## Phase 4: Error Handling & Robustness
+## Phase 5: Error Handling & Robustness
 
 **Goal**: Implement comprehensive error handling with user-friendly messages. Maintain native compilation compatibility.
 
@@ -240,7 +305,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ---
 
-## Phase 5: Testing & Documentation
+## Phase 6: Testing & Documentation
 
 **Goal**: Comprehensive testing across multiple databases and complete documentation. Validate native compilation works end-to-end.
 
@@ -310,7 +375,7 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ---
 
-## Phase 6: Performance Optimization (Optional)
+## Phase 7: Performance Optimization (Optional)
 
 **Goal**: Add caching, query optimization, and performance monitoring to reduce latency and token usage.
 
@@ -389,35 +454,39 @@ For each phase completion:
 
 ### Native Compilation Strategy
 - **Phase 1**: Establish native compilation baseline
-- **Phases 2-4**: Verify each feature works in native mode as it's added
-- **Phase 5**: Comprehensive native testing and documentation
-- **Benefit**: Issues traced to specific features, not debugging at the end
+- **Phase 2**: Set up CI/CD to verify native builds continuously
+- **Phases 3-5**: Verify each feature works in native mode as it's added
+- **Phase 6**: Comprehensive native testing and documentation
+- **Benefit**: Issues traced to specific features via CI, not debugging at the end
 
 ### Dependencies Between Phases
-- Phase 2 depends on Phase 1 (foundation + native baseline required)
-- Phase 3 depends on Phase 1 (foundation + native baseline required)
-- Phase 4 can run in parallel with Phases 2-3 (enhance with error handling)
-- Phase 5 depends on Phases 1-4 (testing integration)
-- Phase 6 depends on Phases 1-5 (all features complete before optimization)
+- Phase 2 depends on Phase 1 (foundation + native baseline required for CI/CD)
+- Phase 3 depends on Phases 1-2 (foundation + CI/CD required)
+- Phase 4 depends on Phases 1-2 (foundation + CI/CD required)
+- Phase 5 can run in parallel with Phases 3-4 (enhance with error handling)
+- Phase 6 depends on Phases 1-5 (testing integration)
+- Phase 7 depends on Phases 1-6 (all features complete before optimization)
 
 ### Recommended Order
 1. **Phase 1** → Foundation + Native Baseline (required first)
-2. **Phase 2 + Phase 3** → Can be parallel development (different developers)
-3. **Phase 4** → Integrate error handling into existing code
-4. **Phase 5** → Testing, documentation, and native validation
-5. **Phase 6** → Optional performance optimization (caching, etc.)
+2. **Phase 2** → CI/CD & Release Pipeline (enables continuous verification)
+3. **Phase 3 + Phase 4** → Can be parallel development (different developers)
+4. **Phase 5** → Integrate error handling into existing code
+5. **Phase 6** → Testing, documentation, and native validation
+6. **Phase 7** → Optional performance optimization (caching, etc.)
 
 ### Estimated Effort
 - Phase 1: 3-4 days (foundation + native setup)
-- Phase 2: 2-3 days (introspection + native verification)
-- Phase 3: 3-4 days (pagination + native verification)
-- Phase 4: 1-2 days (error handling + native verification)
-- Phase 5: 3-4 days (comprehensive testing + native docs)
-- Phase 6: 2-3 days (optimization - optional)
+- Phase 2: 1-2 days (CI/CD setup)
+- Phase 3: 2-3 days (introspection + native verification)
+- Phase 4: 3-4 days (pagination + native verification)
+- Phase 5: 1-2 days (error handling + native verification)
+- Phase 6: 3-4 days (comprehensive testing + native docs)
+- Phase 7: 2-3 days (optimization - optional)
 
-**Total Core (Phases 1-5): 12-17 days** (single developer, sequential)
-**Parallel Core: 9-13 days** (2 developers, Phases 2+3 parallel)
-**With Optimization (Phase 6): 14-20 days total**
+**Total Core (Phases 1-6): 13-19 days** (single developer, sequential)
+**Parallel Core: 10-15 days** (2 developers, Phases 3+4 parallel)
+**With Optimization (Phase 7): 15-22 days total**
 
 ---
 
@@ -425,7 +494,7 @@ For each phase completion:
 
 Track these throughout implementation:
 
-### Core Requirements (Phases 1-5)
+### Core Requirements (Phases 1-6)
 1. **Functionality**: All spec requirements implemented ✓
 2. **Database Support**: PostgreSQL and SQLite tested and working ✓
 3. **Token Efficiency**: Response sizes <50% of JSON equivalent ✓
@@ -433,8 +502,9 @@ Track these throughout implementation:
 5. **Reliability**: Error rate <1% in test scenarios ✓
 6. **Code Quality**: Test coverage >80% ✓
 7. **Native Compilation**: Binary builds, starts <50ms, uses <50MB ✓
+8. **CI/CD**: Automated tests, native builds, and releases ✓
 
-### Optional Enhancements (Phase 6)
+### Optional Enhancements (Phase 7)
 1. **Caching**: Schema metadata cached, >70% hit ratio ✓
 2. **Additional DBs**: MySQL, SQL Server, Oracle (optional) ✓
 3. **Optimized Performance**: Query latency <50ms with caching ✓
@@ -449,10 +519,11 @@ Before starting implementation, consider:
 2. **Quarkus Version**: Spec says 3.27.0, but pom.xml has 3.8.1. Upgrade needed?
 3. **Database Priorities**: ✓ PostgreSQL + SQLite are core (confirmed)
 4. **Extension Installation**: ✓ Use `mvn quarkus:add-extension` for all extensions (confirmed)
-5. **Pagination Strategy**: Should we auto-detect pagination support per database?
-6. **Native Drivers**: PostgreSQL and SQLite drivers work well with GraalVM
-7. **Testing Infrastructure**: Are Testcontainers acceptable for CI/CD?
-8. **Phase 6 Scope**: Is performance optimization needed, or stop after Phase 5?
+5. **CI/CD Setup**: ✓ GitHub Actions for tests, native builds, and releases (Phase 2)
+6. **Pagination Strategy**: Should we auto-detect pagination support per database?
+7. **Native Drivers**: PostgreSQL and SQLite drivers work well with GraalVM
+8. **Testing Infrastructure**: ✓ Testcontainers for PostgreSQL in CI (confirmed)
+9. **Phase 7 Scope**: Is performance optimization needed, or stop after Phase 6?
 
 ---
 
