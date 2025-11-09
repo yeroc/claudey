@@ -19,10 +19,15 @@ This document breaks down the implementation of the MCP Database Server into man
 
 3. **Configuration Setup**
    - Create configuration properties class for database settings
-   - Map environment variables to Quarkus config:
+   - Support multiple config sources (priority order):
+     - Environment variables: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
+     - Runtime config file: `database-server.properties` (or `mcp-db.properties`)
+     - Default `application.properties`
+   - Map to Quarkus datasource config:
      - `DB_URL` → datasource URL (JDBC URL determines driver via service-loader)
      - `DB_USERNAME` → datasource username
      - `DB_PASSWORD` → datasource password
+     - `DB_POOL_SIZE` → connection pool size (default: 1)
    - Set connection pool to size=1 by default
    - Note: Driver auto-detected from JDBC URL via JDBC 4.0+ service-loader
 
@@ -220,8 +225,10 @@ This document breaks down the implementation of the MCP Database Server into man
 3. **Pagination Logic**
    - Detect if query is pageable (SELECT statements)
    - Inject LIMIT/OFFSET clause:
-     - Page size: 100 rows
-     - Formula: `LIMIT 100 OFFSET (page-1)*100`
+     - Page size: 100 rows (fetch 101 to detect more data)
+     - Formula: `LIMIT 101 OFFSET (page-1)*100`
+     - If 101 rows returned → show first 100, mark "more available"
+     - If ≤100 rows returned → show all rows, final page (no "more available")
    - Handle database-specific pagination syntax:
      - PostgreSQL/SQLite: `LIMIT ... OFFSET ...`
      - Future: SQL Server (`OFFSET ... FETCH NEXT ...`), Oracle (`FETCH FIRST`)
