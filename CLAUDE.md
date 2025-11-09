@@ -56,7 +56,20 @@ The Claude Code web proxy requires preemptive authentication (non-standard). Thr
 2. `~/.m2/settings.xml` - Provides proxy credentials
 3. `MAVEN_OPTS` - Ensures forked processes inherit proxy configuration
 
-**Complete Setup Script:**
+**Quick Setup (using provided scripts in `bin/`):**
+
+```bash
+# 1. Create ~/.m2/settings.xml with proxy credentials
+./bin/setup-maven-proxy.sh
+
+# 2. Set MAVEN_OPTS environment variables (must be sourced)
+source bin/maven-env.sh
+
+# 3. Run Maven commands
+mvn clean compile
+```
+
+**Manual Setup:**
 
 ```bash
 # Parse proxy from environment
