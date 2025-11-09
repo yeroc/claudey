@@ -93,7 +93,7 @@ id  name          email
  2  Jane Smith    <null>
 ... (98 more rows)
 ──────────────────────────────────────
-Page 1 (100 rows, more available)
+Page 1 (more available)
 ```
 
 **Example Response (final page):**
@@ -102,7 +102,7 @@ id  name          email
 ──  ────────────  ──────────────────
 201  Alice Wong    alice@example.com
 ──────────────────────────────────────
-Page 3 (1 row)
+Page 3
 ```
 
 ### Resources
