@@ -72,18 +72,20 @@ Execute arbitrary SQL queries with automatic pagination.
 
 **Behavior:**
 - Results limited to 100 rows per page
-- Uses LIMIT/OFFSET for pagination
+- Uses LIMIT/OFFSET for pagination:
+  - Fetches 101 rows to detect if more data exists
+  - Shows first 100 rows if 101 were returned
+  - Shows all rows if ≤100 were returned
 - Supports all SQL operations (SELECT, INSERT, UPDATE, DELETE, DDL)
 
 **Response Format:**
-- Simple ASCII table format
+- Aligned text table format with Unicode separators
 - Column headers in first row
 - NULL values displayed as `<null>`
 - Long text fields returned as-is
-- Pagination metadata:
-  - Current page number
-  - Has more pages (boolean)
-  - Row count for current page
+- Pagination metadata (below footer separator):
+  - Format with more pages: "Page {n} (more available)"
+  - Format for final page: "Page {n}"
 
 **Example Response (with more pages):**
 ```
@@ -122,12 +124,17 @@ No raw stack traces exposed to clients.
 
 ## Configuration
 
-### Required Environment Variables
+Configuration can be provided via multiple sources (in priority order):
+1. Environment variables
+2. Runtime config file (`database-server.properties` or `mcp-db.properties`)
+3. Default `application.properties`
+
+### Required Configuration
 - `DB_URL`: JDBC connection URL (e.g., `jdbc:postgresql://localhost:5432/mydb`, `jdbc:sqlite:./test.db`)
 - `DB_USERNAME`: Database username
 - `DB_PASSWORD`: Database password
 
-### Optional Environment Variables
+### Optional Configuration
 - `DB_POOL_SIZE`: Connection pool size (default: 1 for single connection)
 
 ### Driver Auto-Detection
