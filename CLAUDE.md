@@ -56,8 +56,6 @@ If Maven fails to download dependencies with proxy errors, you need to configure
 
 **Solution:**
 
-Both settings.xml AND MAVEN_OPTS are required for proxy authentication to work properly.
-
 Create `~/.m2/settings.xml` by parsing the HTTPS_PROXY environment variable:
 
 ```bash
@@ -90,15 +88,16 @@ cat > ~/.m2/settings.xml << EOF
   </proxies>
 </settings>
 EOF
-
-# Also export MAVEN_OPTS with proxy settings
-export MAVEN_OPTS="-Dhttp.proxyHost=${PROXY_HOST} -Dhttp.proxyPort=${PROXY_PORT} -Dhttp.proxyUser=${PROXY_USER} -Dhttp.proxyPassword=${PROXY_PASS} -Dhttps.proxyHost=${PROXY_HOST} -Dhttps.proxyPort=${PROXY_PORT} -Dhttps.proxyUser=${PROXY_USER} -Dhttps.proxyPassword=${PROXY_PASS}"
 ```
 
-Note: You'll need to set MAVEN_OPTS in each shell session, or create a wrapper script. Without MAVEN_OPTS, downloads will fail with "Unknown host" errors even with settings.xml configured.
+**Troubleshooting Proxy Errors:**
 
-**Troubleshooting 503 Errors:**
+The Claude Code proxy can be unreliable. Common issues:
 
-If you see 503 Service Unavailable errors with `userName='null'` in the proxy info, the settings.xml file is missing or the proxy credentials have expired. Re-create settings.xml using the script above to get fresh credentials from the HTTPS_PROXY environment variable.
+1. **503 Service Unavailable with `userName='null'`**: This is misleading - credentials ARE being sent (visible in debug output), but the Claude Code proxy is rejecting the request. The proxy may be overloaded or experiencing issues. Wait and retry.
+
+2. **Unknown host errors**: Proxy credentials may have expired. The HTTPS_PROXY JWT tokens expire after ~4 hours. Re-run the settings.xml creation script above to get fresh credentials.
+
+3. **Intermittent failures**: The proxy may work for some downloads but not others. This is environmental - retry the build.
 
 **Note:** The `.mvn/maven.config` file in this repository already configures Maven to use the Wagon transport with preemptive authentication, which is required for the Claude Code proxy.
