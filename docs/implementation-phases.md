@@ -88,10 +88,12 @@ This document breaks down the implementation of the MCP Database Server into man
 
 ### Maven Build Notes
 
-**IMPORTANT**: Building requires both settings.xml AND MAVEN_OPTS:
+**IMPORTANT**: Building requires `~/.m2/settings.xml` for proxy credentials.
+
+The `.mvn/maven.config` file (already in the repository) provides the Wagon transport configuration, so **MAVEN_OPTS is NOT required**.
 
 ```bash
-# Create settings.xml (one-time setup)
+# Create settings.xml (one-time setup in Claude Code web environment)
 mkdir -p ~/.m2
 PROXY_USER=$(echo "$HTTPS_PROXY" | sed 's|http://\([^:]*\):.*|\1|')
 PROXY_PASS=$(echo "$HTTPS_PROXY" | sed 's|http://[^:]*:\([^@]*\)@.*|\1|')
@@ -118,14 +120,16 @@ cat > ~/.m2/settings.xml << 'EOF'
 </settings>
 EOF
 
-# Export MAVEN_OPTS (required for every build)
-export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon"
-
-# Run build
+# Run build (MAVEN_OPTS not needed - .mvn/maven.config handles it)
 mvn clean test
 ```
 
-The `.mvn/maven.config` file contains the Wagon transport configuration, but `MAVEN_OPTS` must still be exported.
+**How it works:**
+- `.mvn/maven.config` (in repo) configures Wagon transport for proxy compatibility
+- `~/.m2/settings.xml` provides proxy credentials (host, port, username, password)
+- Maven automatically combines both configurations
+
+**Note on 503 errors:** The Claude Code proxy can be unreliable and return intermittent 503 Service Unavailable errors. If builds fail with 503 errors, wait a few moments and retry - these are transient proxy issues, not configuration problems.
 
 ---
 
@@ -889,10 +893,7 @@ cat > ~/.m2/settings.xml << 'XMLEOF'
 </settings>
 XMLEOF
 
-# Every build session
-export MAVEN_OPTS="-Djdk.http.auth.tunneling.disabledSchemes= -Dmaven.resolver.transport=wagon"
-
-# Common commands
+# Common commands (MAVEN_OPTS not needed - .mvn/maven.config handles it)
 mvn clean test                # Run tests
 mvn clean package             # Build JVM package
 mvn package -Dnative          # Build native binary (requires GraalVM)
