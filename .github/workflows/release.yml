@@ -29,7 +29,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Build JVM package
-        run: mvn -B clean package -DskipTests
+        run: mvn --batch-mode clean package -DskipTests
 
       - name: Rename JAR artifact
         run: |
@@ -74,7 +74,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
-        run: mvn -B package -Dnative -DskipTests
+        run: mvn --batch-mode package -Dnative -DskipTests
         env:
           MAVEN_OPTS: "-Xmx4g"
 
@@ -121,7 +121,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
-        run: mvn -B package -Dnative -DskipTests
+        run: mvn --batch-mode package -Dnative -DskipTests
         env:
           MAVEN_OPTS: "-Xmx4g"
 
