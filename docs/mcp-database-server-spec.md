@@ -135,7 +135,7 @@ No raw stack traces exposed to clients.
 
 - **Framework**: Quarkus 3.26.1
 - **Language**: Java 21
-- **MCP SDK**: Official Java SDK (modelcontextprotocol/java-sdk)
+- **MCP Extension**: Quarkus MCP Server Stdio (io.quarkiverse.mcp/quarkus-mcp-server-stdio)
 - **Database**: JDBC-compatible databases
 - **Build**: Maven
 - **Native Compilation**: GraalVM (stretch goal)
