@@ -16,6 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Cache Maven packages
+        id: cache-maven
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
@@ -29,6 +30,15 @@ jobs:
           java-version: '21'
           distribution: 'graalvm-community'
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check cache status
+        run: |
+          if [ "${{ steps.cache-maven.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache hit - using cached Maven repository"
+            echo "Cache size: $(du -sh ~/.m2/repository 2>/dev/null || echo 'N/A')"
+          else
+            echo "⚠️ Cache miss - will download dependencies"
+          fi
 
       - name: Build native binary
         run: mvn --batch-mode package -Dnative -DskipTests
