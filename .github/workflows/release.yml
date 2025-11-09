@@ -1,0 +1,213 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-jvm:
+    name: Build JVM JAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build JVM package
+        run: mvn clean package -DskipTests
+
+      - name: Rename JAR artifact
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          mv target/quarkus-app/quarkus-run.jar target/mcp-database-server-${VERSION}.jar
+          cp target/mcp-database-server-${VERSION}.jar mcp-database-server-${VERSION}.jar
+
+      - name: Generate JAR checksum
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sha256sum mcp-database-server-${VERSION}.jar > mcp-database-server-${VERSION}.jar.sha256
+
+      - name: Upload JVM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-jar
+          path: |
+            mcp-database-server-*.jar
+            mcp-database-server-*.jar.sha256
+
+  build-native-linux:
+    name: Build Native Binary (Linux x64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+
+      - name: Build native binary
+        run: mvn package -Dnative -DskipTests
+        env:
+          MAVEN_OPTS: "-Xmx4g"
+
+      - name: Rename native binary
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          BINARY=$(ls target/*-runner)
+          mv $BINARY mcp-database-server-${VERSION}-linux-x64
+
+      - name: Generate native binary checksum
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          sha256sum mcp-database-server-${VERSION}-linux-x64 > mcp-database-server-${VERSION}-linux-x64.sha256
+
+      - name: Upload native Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-linux-x64
+          path: |
+            mcp-database-server-*-linux-x64
+            mcp-database-server-*-linux-x64.sha256
+
+  build-native-macos:
+    name: Build Native Binary (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+
+      - name: Build native binary
+        run: mvn package -Dnative -DskipTests
+        env:
+          MAVEN_OPTS: "-Xmx4g"
+
+      - name: Rename native binary
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          BINARY=$(ls target/*-runner)
+          mv $BINARY mcp-database-server-${VERSION}-macos-x64
+
+      - name: Generate native binary checksum
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          shasum -a 256 mcp-database-server-${VERSION}-macos-x64 > mcp-database-server-${VERSION}-macos-x64.sha256
+
+      - name: Upload native macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-macos-x64
+          path: |
+            mcp-database-server-*-macos-x64
+            mcp-database-server-*-macos-x64.sha256
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-jvm, build-native-linux, build-native-macos]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts/
+
+      - name: Prepare release files
+        run: |
+          mkdir release-files
+          find artifacts -type f -name 'mcp-database-server-*' -exec cp {} release-files/ \;
+          ls -lh release-files/
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          cat > release-notes.md << EOF
+          # MCP Database Server v${VERSION}
+
+          ## 📦 Installation
+
+          ### JVM Mode (Requires Java 21+)
+          \`\`\`bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}.jar
+          java -jar mcp-database-server-${VERSION}.jar --cli
+          \`\`\`
+
+          ### Native Binary (No Java Required)
+
+          **Linux x64:**
+          \`\`\`bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}-linux-x64
+          chmod +x mcp-database-server-${VERSION}-linux-x64
+          ./mcp-database-server-${VERSION}-linux-x64 --cli
+          \`\`\`
+
+          **macOS:**
+          \`\`\`bash
+          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}-macos-x64
+          chmod +x mcp-database-server-${VERSION}-macos-x64
+          ./mcp-database-server-${VERSION}-macos-x64 --cli
+          \`\`\`
+
+          ## 🔐 Checksum Verification
+
+          Download the corresponding \`.sha256\` file and verify:
+          \`\`\`bash
+          sha256sum -c mcp-database-server-${VERSION}-linux-x64.sha256
+          \`\`\`
+
+          ## 📋 What's Included
+
+          - JVM JAR (cross-platform, requires Java 21+)
+          - Native binary for Linux x64
+          - Native binary for macOS x64
+          - SHA256 checksums for all artifacts
+
+          ## 🚀 Features
+
+          See [README.md](https://github.com/${{ github.repository }}) for full documentation.
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release-notes.md
+          files: release-files/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
