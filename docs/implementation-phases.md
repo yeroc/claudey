@@ -101,7 +101,6 @@ This document breaks down the implementation of the MCP Database Server into man
 
 5. **Documentation**
    - Document CI/CD pipeline in DEVELOPMENT.md
-   - Add contributing guidelines (CONTRIBUTING.md)
    - Document release process
 
 ### Acceptance Criteria
@@ -118,7 +117,6 @@ This document breaks down the implementation of the MCP Database Server into man
 - `.github/workflows/test.yml` - Test automation
 - `.github/workflows/native-build.yml` - Native compilation
 - `.github/workflows/release.yml` - Release automation
-- `CONTRIBUTING.md` - Contribution guidelines
 - `README.md` - Add build badges
 - `docs/DEVELOPMENT.md` - CI/CD documentation
 
