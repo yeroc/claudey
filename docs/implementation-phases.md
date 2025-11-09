@@ -217,7 +217,8 @@ This document breaks down the implementation of the MCP Database Server into man
 
 5. **Pagination Metadata**
    - Display below footer separator
-   - Format: "Page {n} of results ({count} rows, more available)" or "Page {n} of results ({count} rows)"
+   - Format when more data available: "Page {n} ({count} rows, more available)"
+   - Format for final page: "Page {n} ({count} rows)" or "Page {n} ({count} row)" for singular
    - Example with more pages:
      ```
      id  name          email
@@ -226,7 +227,7 @@ This document breaks down the implementation of the MCP Database Server into man
       2  Jane Smith    <null>
      ... (98 more rows)
      ──────────────────────────────────────
-     Page 1 of results (100 rows, more available)
+     Page 1 (100 rows, more available)
      ```
    - Example final page:
      ```
@@ -234,7 +235,7 @@ This document breaks down the implementation of the MCP Database Server into man
      ──  ────────────  ──────────────────
     201  Alice Wong    alice@example.com
     ──────────────────────────────────────
-     Page 3 of results (1 row)
+     Page 3 (1 row)
      ```
 
 6. **Non-SELECT Query Handling**

@@ -85,7 +85,7 @@ Execute arbitrary SQL queries with automatic pagination.
   - Has more pages (boolean)
   - Row count for current page
 
-**Example Response:**
+**Example Response (with more pages):**
 ```
 id  name          email
 ──  ────────────  ──────────────────
@@ -93,7 +93,16 @@ id  name          email
  2  Jane Smith    <null>
 ... (98 more rows)
 ──────────────────────────────────────
-Page 1 of results (100 rows, more available)
+Page 1 (100 rows, more available)
+```
+
+**Example Response (final page):**
+```
+id  name          email
+──  ────────────  ──────────────────
+201  Alice Wong    alice@example.com
+──────────────────────────────────────
+Page 3 (1 row)
 ```
 
 ### Resources
