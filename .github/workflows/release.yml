@@ -30,13 +30,13 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build JVM package
-        run: mvn --batch-mode clean package -DskipTests
+      - name: Build uber-jar
+        run: mvn --batch-mode clean package -DskipTests -Dquarkus.package.jar.type=uber-jar
 
-      - name: Rename JAR artifact
+      - name: Rename uber-jar
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          mv target/mcp-database-server/quarkus-run.jar mcp-database-server-${VERSION}.jar
+          mv target/mcp-database-server.jar mcp-database-server-${VERSION}.jar
 
       - name: Generate JAR checksum
         run: |
