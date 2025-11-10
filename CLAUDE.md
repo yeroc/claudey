@@ -63,20 +63,24 @@ assertTrue(output.contains("Error")); // NO!
 
 ### Stream Capture
 
-Use **system-stubs** for stdout/stderr capture instead of manual stream manipulation:
+Use **system-stubs** programmatically for stdout/stderr capture (the extension conflicts with `@QuarkusTest`):
 
 ```java
-@ExtendWith(SystemStubsExtension.class)
+import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemErr;
+
+@QuarkusTest
 class MyTest {
-  @SystemStub
-  private SystemErr systemErr;
 
   @Test
   void testErrorOutput() throws Exception {
-    // Code that writes to System.err
+    String stderr = tapSystemErr(() -> {
+      // Code that writes to System.err
+      int exitCode = someMethod();
+      assertThat("Should succeed", exitCode, is(0));
+    });
 
     assertThat("Should print error message",
-        systemErr.getText(), containsString("Error"));
+        stderr, containsString("Error"));
   }
 }
 ```
