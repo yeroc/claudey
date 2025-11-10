@@ -151,8 +151,8 @@ jobs:
       - name: Find and verify native binary
         id: find_binary
         run: |
-          # Find the native binary (matches mcp-database-server-* but not source-jar files)
-          BINARY=$(find target -maxdepth 1 -name 'mcp-database-server-*' -type f -executable | head -n1)
+          # Find the native binary (exclude .jar, .json, .txt files)
+          BINARY=$(find target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
           if [ -z "$BINARY" ]; then
             echo "Native binary not found!"
             exit 1
@@ -174,15 +174,22 @@ jobs:
       - name: Rename and checksum native binary
         run: |
           BINARY=${{ steps.find_binary.outputs.binary_path }}
+          BINARY_DIR=$(dirname "$BINARY")
           BINARY_NAME=$(basename "$BINARY")
           RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
 
-          cd target
+          cd "$BINARY_DIR"
           mv "$BINARY_NAME" "$RENAMED"
           if [[ "$OSTYPE" == "darwin"* ]]; then
             shasum -a 256 "$RENAMED" > "${RENAMED}.sha256"
           else
             sha256sum "$RENAMED" > "${RENAMED}.sha256"
+          fi
+
+          # Move to target root for artifact upload
+          if [ "$BINARY_DIR" != "target" ]; then
+            mv "$RENAMED" target/
+            mv "${RENAMED}.sha256" target/
           fi
 
       - name: Upload native binary artifact
