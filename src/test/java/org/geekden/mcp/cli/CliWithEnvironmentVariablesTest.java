@@ -6,10 +6,10 @@ import org.geekden.mcp.config.DatabaseConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemErr;
+import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemOut;
 
 /**
  * Test CLI with database configured via environment variables.
@@ -26,7 +26,7 @@ class CliWithEnvironmentVariablesTest {
 
   @Test
   @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".+")
-  void testIntrospectWithEnvironmentVariables() {
+  void testIntrospectWithEnvironmentVariables() throws Exception {
     // Print configuration for visibility in test output
     System.out.println("=== CLI Test with Environment Variables ===");
     System.out.println("DB_URL: " + System.getenv("DB_URL"));
@@ -34,128 +34,86 @@ class CliWithEnvironmentVariablesTest {
     System.out.println("DB_PASSWORD: " + (System.getenv("DB_PASSWORD") != null ? "***" : "not set"));
     System.out.println("==========================================");
 
-    assertTrue(config.isConfigured(), "Database should be configured via environment variables");
+    assertThat("Database should be configured via environment variables",
+        config.isConfigured(), is(true));
 
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    ByteArrayOutputStream errContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    PrintStream originalErr = System.err;
+    String stdout = tapSystemOut(() -> {
+      String stderr = tapSystemErr(() -> {
+        int exitCode = cliHandler.execute(new String[]{"introspect"});
 
-    System.setOut(new PrintStream(outContent));
-    System.setErr(new PrintStream(errContent));
+        assertThat("CLI introspect should succeed with configured database",
+            exitCode, is(0));
 
-    try {
-      int exitCode = cliHandler.execute(new String[]{"introspect"});
+        return stderr;
+      });
 
-      System.setOut(originalOut);
-      System.setErr(originalErr);
+      assertThat("Should not show database configuration error",
+          stderr, not(containsString("Database not configured")));
+    });
 
-      String output = outContent.toString();
-      String errorOutput = errContent.toString();
-
-      System.out.println("=== CLI Output ===");
-      System.out.println(output);
-      if (!errorOutput.isEmpty()) {
-        System.out.println("=== CLI Error Output ===");
-        System.out.println(errorOutput);
-      }
-      System.out.println("==================");
-
-      assertEquals(0, exitCode, "CLI introspect should succeed with configured database");
-      assertFalse(errorOutput.contains("Database not configured"),
-          "Should not show database configuration error");
-
-    } finally {
-      System.setOut(originalOut);
-      System.setErr(originalErr);
-    }
+    System.out.println("=== CLI Output ===");
+    System.out.println(stdout);
+    System.out.println("==================");
   }
 
   @Test
   @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".+")
-  void testQueryWithEnvironmentVariables() {
-    assertTrue(config.isConfigured(), "Database should be configured via environment variables");
+  void testQueryWithEnvironmentVariables() throws Exception {
+    assertThat("Database should be configured via environment variables",
+        config.isConfigured(), is(true));
 
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    ByteArrayOutputStream errContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    PrintStream originalErr = System.err;
+    String stdout = tapSystemOut(() -> {
+      String stderr = tapSystemErr(() -> {
+        int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
 
-    System.setOut(new PrintStream(outContent));
-    System.setErr(new PrintStream(errContent));
+        assertThat("CLI query should succeed with configured database",
+            exitCode, is(0));
 
-    try {
-      int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
+        return stderr;
+      });
 
-      System.setOut(originalOut);
-      System.setErr(originalErr);
+      assertThat("Should not show database configuration error",
+          stderr, not(containsString("Database not configured")));
+    });
 
-      String output = outContent.toString();
-      String errorOutput = errContent.toString();
-
-      System.out.println("=== CLI Query Output ===");
-      System.out.println(output);
-      if (!errorOutput.isEmpty()) {
-        System.out.println("=== CLI Error Output ===");
-        System.out.println(errorOutput);
-      }
-      System.out.println("========================");
-
-      assertEquals(0, exitCode, "CLI query should succeed with configured database");
-      assertFalse(errorOutput.contains("Database not configured"),
-          "Should not show database configuration error");
-
-    } finally {
-      System.setOut(originalOut);
-      System.setErr(originalErr);
-    }
+    System.out.println("=== CLI Query Output ===");
+    System.out.println(stdout);
+    System.out.println("========================");
   }
 
   @Test
   @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".*postgres.*", disabledReason = "PostgreSQL-specific test")
-  void testPostgreSQLConnection() {
+  void testPostgreSQLConnection() throws Exception {
     System.out.println("=== PostgreSQL-Specific Test ===");
     System.out.println("Verifying PostgreSQL connection via CLI");
 
-    assertTrue(config.getJdbcUrl().orElse("").contains("postgres"),
-        "Should be using PostgreSQL database");
+    assertThat("Should be using PostgreSQL database",
+        config.getJdbcUrl().orElse(""), containsString("postgres"));
 
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"introspect"});
-      System.setOut(originalOut);
+      assertThat("PostgreSQL introspect should succeed",
+          exitCode, is(0));
+    });
 
-      assertEquals(0, exitCode, "PostgreSQL introspect should succeed");
-      System.out.println("PostgreSQL CLI introspect succeeded");
-    } finally {
-      System.setOut(originalOut);
-    }
+    System.out.println("PostgreSQL CLI introspect succeeded");
   }
 
   @Test
   @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".*sqlite.*", disabledReason = "SQLite-specific test")
-  void testSQLiteConnection() {
+  void testSQLiteConnection() throws Exception {
     System.out.println("=== SQLite-Specific Test ===");
     System.out.println("Verifying SQLite connection via CLI");
 
-    assertTrue(config.getJdbcUrl().orElse("").contains("sqlite"),
-        "Should be using SQLite database");
+    assertThat("Should be using SQLite database",
+        config.getJdbcUrl().orElse(""), containsString("sqlite"));
 
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"introspect"});
-      System.setOut(originalOut);
+      assertThat("SQLite introspect should succeed",
+          exitCode, is(0));
+    });
 
-      assertEquals(0, exitCode, "SQLite introspect should succeed");
-      System.out.println("SQLite CLI introspect succeeded");
-    } finally {
-      System.setOut(originalOut);
-    }
+    System.out.println("SQLite CLI introspect succeeded");
   }
 }

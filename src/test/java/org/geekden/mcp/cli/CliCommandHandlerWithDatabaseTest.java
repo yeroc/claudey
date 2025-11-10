@@ -6,11 +6,11 @@ import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemOut;
 
 /**
  * Test CLI command handler with SQLite database configured.
@@ -36,92 +36,62 @@ class CliCommandHandlerWithDatabaseTest {
   }
 
   @Test
-  void testIntrospectWithDatabaseSucceeds() {
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+  void testIntrospectWithDatabaseSucceeds() throws Exception {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"introspect"});
-      assertEquals(0, exitCode, "Should return exit code 0 with database configured");
+      assertThat("Should return exit code 0 with database configured",
+          exitCode, is(0));
+    });
 
-      String output = outContent.toString();
-      assertTrue(output.contains("Listing all schemas") || output.contains("pending"),
-          "Should execute introspect command successfully");
-    } finally {
-      System.setOut(originalOut);
-    }
+    assertThat("Should execute introspect command successfully",
+        stdout, anyOf(containsString("Listing all schemas"), containsString("pending")));
   }
 
   @Test
-  void testIntrospectSchemaWithDatabaseSucceeds() {
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+  void testIntrospectSchemaWithDatabaseSucceeds() throws Exception {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"introspect", "public"});
-      assertEquals(0, exitCode, "Should return exit code 0 with database configured");
+      assertThat("Should return exit code 0 with database configured",
+          exitCode, is(0));
+    });
 
-      String output = outContent.toString();
-      assertTrue(output.contains("Listing tables") || output.contains("pending"),
-          "Should execute introspect schema command successfully");
-    } finally {
-      System.setOut(originalOut);
-    }
+    assertThat("Should execute introspect schema command successfully",
+        stdout, anyOf(containsString("Listing tables"), containsString("pending")));
   }
 
   @Test
-  void testIntrospectTableWithDatabaseSucceeds() {
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+  void testIntrospectTableWithDatabaseSucceeds() throws Exception {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"introspect", "public", "users"});
-      assertEquals(0, exitCode, "Should return exit code 0 with database configured");
+      assertThat("Should return exit code 0 with database configured",
+          exitCode, is(0));
+    });
 
-      String output = outContent.toString();
-      assertTrue(output.contains("Describing table") || output.contains("pending"),
-          "Should execute introspect table command successfully");
-    } finally {
-      System.setOut(originalOut);
-    }
+    assertThat("Should execute introspect table command successfully",
+        stdout, anyOf(containsString("Describing table"), containsString("pending")));
   }
 
   @Test
-  void testQueryWithDatabaseSucceeds() {
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+  void testQueryWithDatabaseSucceeds() throws Exception {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
-      assertEquals(0, exitCode, "Should return exit code 0 with database configured");
+      assertThat("Should return exit code 0 with database configured",
+          exitCode, is(0));
+    });
 
-      String output = outContent.toString();
-      assertTrue(output.contains("Executing query") || output.contains("pending"),
-          "Should execute query command successfully");
-    } finally {
-      System.setOut(originalOut);
-    }
+    assertThat("Should execute query command successfully",
+        stdout, anyOf(containsString("Executing query"), containsString("pending")));
   }
 
   @Test
-  void testQueryWithPageParameterSucceeds() {
-    ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    PrintStream originalOut = System.out;
-    System.setOut(new PrintStream(outContent));
-
-    try {
+  void testQueryWithPageParameterSucceeds() throws Exception {
+    String stdout = tapSystemOut(() -> {
       int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1", "--page", "2"});
-      assertEquals(0, exitCode, "Should return exit code 0 with page parameter");
+      assertThat("Should return exit code 0 with page parameter",
+          exitCode, is(0));
+    });
 
-      String output = outContent.toString();
-      assertTrue(output.contains("page 2"),
-          "Should execute query with page parameter");
-    } finally {
-      System.setOut(originalOut);
-    }
+    assertThat("Should execute query with page parameter",
+        stdout, containsString("page 2"));
   }
 }
