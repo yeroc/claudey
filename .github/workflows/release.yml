@@ -8,9 +8,60 @@ on:
       - '*.*.*-*-*'
 
 jobs:
-  build-jvm:
-    name: Build JVM JAR
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Run tests with PostgreSQL
+        env:
+          DB_KIND: postgresql
+          DB_URL: jdbc:postgresql://localhost:5432/testdb
+          DB_USERNAME: testuser
+          DB_PASSWORD: testpass
+        run: mvn --batch-mode clean verify
+
+      - name: Run tests with SQLite
+        env:
+          DB_URL: "jdbc:sqlite::memory:"
+        run: mvn --batch-mode test
+
+  build-jar:
+    name: Build JAR
+    runs-on: ubuntu-latest
+    needs: [test]
 
     steps:
       - name: Checkout code
@@ -43,17 +94,27 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/}
           sha256sum mcp-database-server-${VERSION}.jar > mcp-database-server-${VERSION}.jar.sha256
 
-      - name: Upload JVM artifact
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: jvm-jar
+          name: jar
           path: |
             mcp-database-server-*.jar
             mcp-database-server-*.jar.sha256
 
-  build-native-linux:
-    name: Build Native Binary (Linux x64)
-    runs-on: ubuntu-latest
+  build-native:
+    name: Build Native Binary (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    needs: [test]
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-14
+            platform: macos-arm64
+            macos_target: "11.0"
 
     steps:
       - name: Checkout code
@@ -78,76 +139,38 @@ jobs:
         run: mvn --batch-mode package -Dnative -DskipTests
         env:
           MAVEN_OPTS: "-Xmx4g"
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
       - name: Rename native binary
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          mv target/mcp-database-server mcp-database-server-${VERSION}-linux-x64
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            mv target/mcp-database-server mcp-database-server-${VERSION}-${{ matrix.platform }}
+          else
+            mv target/mcp-database-server mcp-database-server-${VERSION}-${{ matrix.platform }}
+          fi
 
       - name: Generate native binary checksum
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          sha256sum mcp-database-server-${VERSION}-linux-x64 > mcp-database-server-${VERSION}-linux-x64.sha256
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            shasum -a 256 mcp-database-server-${VERSION}-${{ matrix.platform }} > mcp-database-server-${VERSION}-${{ matrix.platform }}.sha256
+          else
+            sha256sum mcp-database-server-${VERSION}-${{ matrix.platform }} > mcp-database-server-${VERSION}-${{ matrix.platform }}.sha256
+          fi
 
-      - name: Upload native Linux artifact
+      - name: Upload native binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: native-linux-x64
+          name: native-${{ matrix.platform }}
           path: |
-            mcp-database-server-*-linux-x64
-            mcp-database-server-*-linux-x64.sha256
-
-  build-native-macos:
-    name: Build Native Binary (macOS ARM64)
-    runs-on: macos-14
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            maven-
-
-      - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: '21'
-          distribution: 'graalvm-community'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build native binary
-        run: mvn --batch-mode package -Dnative -DskipTests
-        env:
-          MAVEN_OPTS: "-Xmx4g"
-          MACOSX_DEPLOYMENT_TARGET: "11.0"
-
-      - name: Rename native binary
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          mv target/mcp-database-server mcp-database-server-${VERSION}-macos-arm64
-
-      - name: Generate native binary checksum
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          shasum -a 256 mcp-database-server-${VERSION}-macos-arm64 > mcp-database-server-${VERSION}-macos-arm64.sha256
-
-      - name: Upload native macOS artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-macos-arm64
-          path: |
-            mcp-database-server-*-macos-arm64
-            mcp-database-server-*-macos-arm64.sha256
+            mcp-database-server-*-${{ matrix.platform }}
+            mcp-database-server-*-${{ matrix.platform }}.sha256
 
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-jvm, build-native-linux, build-native-macos]
+    needs: [build-jar, build-native]
 
     steps:
       - name: Checkout code
