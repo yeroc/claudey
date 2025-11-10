@@ -4,10 +4,14 @@
   
   <groupId>org.geekden</groupId>
   <artifactId>test-app</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>${revision}</version>
   <packaging>jar</packaging>
-  
+
   <properties>
+    <baseVersion>HEAD</baseVersion>
+    <buildNumber>SNAPSHOT</buildNumber>
+    <revision>${baseVersion}-${buildNumber}</revision>
+
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
