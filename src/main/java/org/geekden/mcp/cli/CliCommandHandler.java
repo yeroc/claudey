@@ -39,7 +39,7 @@ public class CliCommandHandler {
    */
   public int execute(String[] args) {
     try {
-      // Validate command syntax first
+      // Check for arguments
       if (args.length == 0) {
         printUsage();
         return 1;
@@ -47,45 +47,14 @@ public class CliCommandHandler {
 
       String command = args[0];
 
-      // Validate command is recognized and has valid arguments
-      switch (command) {
-        case "introspect":
-          if (args.length > 3) {
-            System.err.println("Invalid arguments for introspect command");
-            printUsage();
-            return 1;
-          }
-          break;
-        case "query":
-          if (args.length < 2) {
-            System.err.println("Missing SQL query");
-            printUsage();
-            return 1;
-          }
-          // Validate --page argument if present
-          for (int i = 2; i < args.length; i++) {
-            if ("--page".equals(args[i])) {
-              if (i + 1 >= args.length) {
-                System.err.println("Missing value for --page");
-                return 1;
-              }
-              try {
-                Integer.parseInt(args[i + 1]);
-              } catch (NumberFormatException e) {
-                System.err.println("Invalid page number: " + args[i + 1]);
-                return 1;
-              }
-              break;
-            }
-          }
-          break;
-        default:
-          System.err.println("Unknown command: " + command);
-          printUsage();
-          return 1;
+      // Check command is recognized
+      if (!isValidCommand(command)) {
+        System.err.println("Unknown command: " + command);
+        printUsage();
+        return 1;
       }
 
-      // Check database configuration before executing
+      // Check database configuration
       if (!config.isConfigured()) {
         System.err.println("Error: Database not configured.");
         System.err.println("Set DB_URL, DB_USERNAME, and DB_PASSWORD environment variables.");
@@ -109,8 +78,18 @@ public class CliCommandHandler {
     }
   }
 
+  private boolean isValidCommand(String command) {
+    return "introspect".equals(command) || "query".equals(command);
+  }
+
   private int handleIntrospect(String[] args) {
-    // Arguments already validated in execute()
+    // Validate arguments
+    if (args.length > 3) {
+      System.err.println("Invalid arguments for introspect command");
+      printUsage();
+      return 1;
+    }
+
     try (Connection conn = dataSource.get().getConnection()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
@@ -151,7 +130,11 @@ public class CliCommandHandler {
 
     // Parse --page argument
     for (int i = 2; i < args.length; i++) {
-      if ("--page".equals(args[i]) && i + 1 < args.length) {
+      if ("--page".equals(args[i])) {
+        if (i + 1 >= args.length) {
+          System.err.println("Missing value for --page");
+          return 1;
+        }
         try {
           page = Integer.parseInt(args[i + 1]);
         } catch (NumberFormatException e) {
