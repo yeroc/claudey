@@ -69,7 +69,7 @@ jobs:
         env:
           DB_KIND: sqlite
           DB_URL: "jdbc:sqlite::memory:"
-        run: mvn --batch-mode verify -Drevision=${{ steps.parse_version.outputs.version }}
+        run: mvn --batch-mode clean verify -Drevision=${{ steps.parse_version.outputs.version }}
 
   build-jar:
     name: Build JAR
