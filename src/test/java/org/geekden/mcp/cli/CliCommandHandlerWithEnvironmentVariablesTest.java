@@ -12,11 +12,11 @@ import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemErr;
 import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemOut;
 
 /**
- * Test CLI with database configured via environment variables.
+ * Test CLI command handler with database configured via environment variables.
  * This matches how the application is used in CI workflows.
  */
 @QuarkusTest
-class CliWithEnvironmentVariablesTest {
+class CliCommandHandlerWithEnvironmentVariablesTest {
 
   @Inject
   CliCommandHandler cliHandler;
