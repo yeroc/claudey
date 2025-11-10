@@ -13,6 +13,8 @@ chmod +x mcp-database-server-VERSION-linux-x64
 ```bash
 wget https://github.com/REPO/releases/download/VERSION/mcp-database-server-VERSION-macos-arm64
 chmod +x mcp-database-server-VERSION-macos-arm64
+# Remove quarantine attribute (macOS marks downloaded executables as untrusted)
+xattr -d com.apple.quarantine mcp-database-server-VERSION-macos-arm64
 ./mcp-database-server-VERSION-macos-arm64 --cli
 ```
 
