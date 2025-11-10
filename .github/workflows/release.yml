@@ -227,51 +227,12 @@ jobs:
       - name: Generate release notes
         run: |
           VERSION=${{ needs.test.outputs.version }}
-          cat > release-notes.md << EOF
-          # MCP Database Server v${VERSION}
+          REPO=${{ github.repository }}
 
-          ## 📦 Installation
-
-          ### JVM Mode (Requires Java 21+)
-          \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/mcp-database-server-${VERSION}.jar
-          java -jar mcp-database-server-${VERSION}.jar --cli
-          \`\`\`
-
-          ### Native Binary (No Java Required)
-
-          **Linux x64:**
-          \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/mcp-database-server-${VERSION}-linux-x64
-          chmod +x mcp-database-server-${VERSION}-linux-x64
-          ./mcp-database-server-${VERSION}-linux-x64 --cli
-          \`\`\`
-
-          **macOS (Apple Silicon M1/M2/M3):**
-          \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/mcp-database-server-${VERSION}-macos-arm64
-          chmod +x mcp-database-server-${VERSION}-macos-arm64
-          ./mcp-database-server-${VERSION}-macos-arm64 --cli
-          \`\`\`
-
-          ## 🔐 Checksum Verification
-
-          Download the corresponding \`.sha256\` file and verify:
-          \`\`\`bash
-          sha256sum -c mcp-database-server-${VERSION}-linux-x64.sha256
-          \`\`\`
-
-          ## 📋 What's Included
-
-          - JVM JAR (cross-platform, requires Java 21+)
-          - Native binary for Linux x64
-          - Native binary for macOS ARM64 (Apple Silicon, macOS 11+)
-          - SHA256 checksums for all artifacts
-
-          ## 🚀 Features
-
-          See [README.md](https://github.com/${{ github.repository }}) for full documentation.
-          EOF
+          # Generate release notes from template
+          sed -e "s|VERSION|${VERSION}|g" \
+              -e "s|REPO|${REPO}|g" \
+              .github/release-template.md > release-notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
