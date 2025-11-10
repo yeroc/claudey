@@ -10,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -52,8 +54,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 when database not configured");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Database not configured"),
-          "Should print database configuration error");
+      assertThat("Should print database configuration error",
+          errorOutput, containsString("Database not configured"));
     } finally {
       System.setErr(originalErr);
     }
@@ -70,8 +72,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 when database not configured");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Database not configured"),
-          "Should print database configuration error");
+      assertThat("Should print database configuration error",
+          errorOutput, containsString("Database not configured"));
     } finally {
       System.setErr(originalErr);
     }
@@ -88,8 +90,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 for invalid command");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Unknown command"),
-          "Should print unknown command error");
+      assertThat("Should print unknown command error",
+          errorOutput, containsString("Unknown command"));
     } finally {
       System.setErr(originalErr);
     }
@@ -106,8 +108,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 when no arguments");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Usage:"),
-          "Should print usage information");
+      assertThat("Should print usage information",
+          errorOutput, containsString("Usage:"));
     } finally {
       System.setErr(originalErr);
     }
@@ -125,8 +127,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 for invalid introspect arguments");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Invalid arguments") || errorOutput.contains("Usage:"),
-          "Should print error about invalid arguments");
+      assertThat("Should print error about invalid arguments",
+          errorOutput, anyOf(containsString("Invalid arguments"), containsString("Usage:")));
     } finally {
       System.setErr(originalErr);
     }
@@ -143,8 +145,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 when query SQL is missing");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Missing SQL query"),
-          "Should print missing query error");
+      assertThat("Should print missing query error",
+          errorOutput, containsString("Missing SQL query"));
     } finally {
       System.setErr(originalErr);
     }
@@ -161,8 +163,8 @@ class CliCommandHandlerTest {
       assertEquals(1, exitCode, "Should return exit code 1 for invalid page number");
 
       String errorOutput = errContent.toString();
-      assertTrue(errorOutput.contains("Invalid page number"),
-          "Should print invalid page number error");
+      assertThat("Should print invalid page number error",
+          errorOutput, containsString("Invalid page number"));
     } finally {
       System.setErr(originalErr);
     }
