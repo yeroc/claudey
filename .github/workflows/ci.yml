@@ -65,7 +65,7 @@ jobs:
       - name: Run tests with SQLite
         env:
           DB_URL: "jdbc:sqlite::memory:"
-        run: mvn --batch-mode test
+        run: mvn --batch-mode verify
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
