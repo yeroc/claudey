@@ -67,6 +67,16 @@ jobs:
           DB_URL: "jdbc:sqlite::memory:"
         run: mvn --batch-mode test
 
+      - name: Package JVM application
+        run: mvn --batch-mode package -DskipTests
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quarkus-app-jvm
+          path: target/quarkus-app/
+          retention-days: 30
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
