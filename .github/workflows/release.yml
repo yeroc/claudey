@@ -12,9 +12,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     outputs:
-      baseVersion: ${{ steps.parse_version.outputs.baseVersion }}
-      buildNumber: ${{ steps.parse_version.outputs.buildNumber }}
-      fullVersion: ${{ steps.parse_version.outputs.fullVersion }}
+      version: ${{ steps.parse_version.outputs.version }}
 
     services:
       postgres:
@@ -53,23 +51,8 @@ jobs:
         id: parse_version
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          echo "Full version: $VERSION"
-
-          # Split into baseVersion and buildNumber
-          if [[ "$VERSION" == *"-"* ]]; then
-            BASE_VERSION=$(echo $VERSION | cut -d'-' -f1)
-            BUILD_NUMBER=$(echo $VERSION | cut -d'-' -f2-)
-          else
-            BASE_VERSION=$VERSION
-            BUILD_NUMBER="release"
-          fi
-
-          echo "baseVersion=$BASE_VERSION"
-          echo "buildNumber=$BUILD_NUMBER"
-          echo "fullVersion=$VERSION"
-          echo "baseVersion=$BASE_VERSION" >> $GITHUB_OUTPUT
-          echo "buildNumber=$BUILD_NUMBER" >> $GITHUB_OUTPUT
-          echo "fullVersion=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Run tests with PostgreSQL
         env:
@@ -77,12 +60,12 @@ jobs:
           DB_URL: jdbc:postgresql://localhost:5432/testdb
           DB_USERNAME: testuser
           DB_PASSWORD: testpass
-        run: mvn --batch-mode clean verify -DbaseVersion=${{ steps.parse_version.outputs.baseVersion }} -DbuildNumber=${{ steps.parse_version.outputs.buildNumber }}
+        run: mvn --batch-mode clean verify -Drevision=${{ steps.parse_version.outputs.version }}
 
       - name: Run tests with SQLite
         env:
           DB_URL: "jdbc:sqlite::memory:"
-        run: mvn --batch-mode test -DbaseVersion=${{ steps.parse_version.outputs.baseVersion }} -DbuildNumber=${{ steps.parse_version.outputs.buildNumber }}
+        run: mvn --batch-mode test -Drevision=${{ steps.parse_version.outputs.version }}
 
   build-jar:
     name: Build JAR
@@ -108,13 +91,13 @@ jobs:
           distribution: 'temurin'
 
       - name: Build uber-jar
-        run: mvn --batch-mode clean package -DskipTests -Dquarkus.package.jar.type=uber-jar -DbaseVersion=${{ needs.test.outputs.baseVersion }} -DbuildNumber=${{ needs.test.outputs.buildNumber }}
+        run: mvn --batch-mode clean package -DskipTests -Dquarkus.package.jar.type=uber-jar -Drevision=${{ needs.test.outputs.version }}
 
       - name: Rename uber-jar
-        run: mv target/mcp-database-server.jar mcp-database-server-${{ needs.test.outputs.fullVersion }}.jar
+        run: mv target/mcp-database-server.jar mcp-database-server-${{ needs.test.outputs.version }}.jar
 
       - name: Generate JAR checksum
-        run: sha256sum mcp-database-server-${{ needs.test.outputs.fullVersion }}.jar > mcp-database-server-${{ needs.test.outputs.fullVersion }}.jar.sha256
+        run: sha256sum mcp-database-server-${{ needs.test.outputs.version }}.jar > mcp-database-server-${{ needs.test.outputs.version }}.jar.sha256
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
@@ -158,20 +141,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
-        run: mvn --batch-mode package -Dnative -DskipTests -DbaseVersion=${{ needs.test.outputs.baseVersion }} -DbuildNumber=${{ needs.test.outputs.buildNumber }}
+        run: mvn --batch-mode package -Dnative -DskipTests -Drevision=${{ needs.test.outputs.version }}
         env:
           MAVEN_OPTS: "-Xmx4g"
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
       - name: Rename native binary
-        run: mv target/mcp-database-server mcp-database-server-${{ needs.test.outputs.fullVersion }}-${{ matrix.platform }}
+        run: mv target/mcp-database-server mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}
 
       - name: Generate native binary checksum
         run: |
           if [[ "$OSTYPE" == "darwin"* ]]; then
-            shasum -a 256 mcp-database-server-${{ needs.test.outputs.fullVersion }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.fullVersion }}-${{ matrix.platform }}.sha256
+            shasum -a 256 mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}.sha256
           else
-            sha256sum mcp-database-server-${{ needs.test.outputs.fullVersion }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.fullVersion }}-${{ matrix.platform }}.sha256
+            sha256sum mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}.sha256
           fi
 
       - name: Upload native binary artifact
@@ -207,7 +190,7 @@ jobs:
 
       - name: Generate release notes
         run: |
-          VERSION=${{ needs.test.outputs.fullVersion }}
+          VERSION=${{ needs.test.outputs.version }}
           cat > release-notes.md << EOF
           # MCP Database Server v${VERSION}
 
