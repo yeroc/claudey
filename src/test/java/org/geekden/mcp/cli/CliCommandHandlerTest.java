@@ -1,19 +1,36 @@
 package org.geekden.mcp.cli;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test CLI command handler functionality.
+ * Test CLI command handler functionality without database configured.
  */
 @QuarkusTest
+@TestProfile(CliCommandHandlerTest.NoDatabaseProfile.class)
 class CliCommandHandlerTest {
+
+  /**
+   * Test profile that clears database configuration.
+   */
+  public static class NoDatabaseProfile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return Map.of(
+          "DB_URL", "",
+          "quarkus.datasource.jdbc.url", ""
+      );
+    }
+  }
 
   @Inject
   CliCommandHandler cliHandler;
