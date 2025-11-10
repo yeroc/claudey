@@ -80,6 +80,6 @@ jobs:
         if: always()
         with:
           name: coverage-report
-          path: target/site/jacoco/
+          path: target/jacoco-report/
           retention-days: 7
           if-no-files-found: ignore
