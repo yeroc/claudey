@@ -16,8 +16,11 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x64
-          - os: macos-latest
+            platform_label: "Linux x64"
+          - os: macos-14
             platform: macos-arm64
+            macos_target: "11.0"
+            platform_label: "macOS 11+ (ARM64)"
 
     steps:
       - name: Checkout code
@@ -52,6 +55,7 @@ jobs:
         run: mvn --batch-mode package -Dnative -DskipTests
         env:
           MAVEN_OPTS: "-Xmx4g"
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
       - name: Verify native binary exists
         run: |
@@ -127,12 +131,14 @@ jobs:
             const startupTime = '${{ steps.startup_test.outputs.startup_time }}';
             const binarySize = '${{ steps.binary_size.outputs.size_mb }}';
             const platform = '${{ matrix.platform }}';
+            const platformLabel = '${{ matrix.platform_label }}';
 
-            const body = `## Native Build Results 🚀 (${platform})
+            const body = `## Native Build Results 🚀
 
+            - **Platform**: ${platformLabel}
             - **Binary Size**: ${binarySize}MB
             - **Startup Time** (--help): ${startupTime}ms
-            - **Platform**: ${platform}
+            - **Artifact**: \`native-binary-${platform}\`
 
             Native binary artifact available for download in workflow artifacts.`;
 
