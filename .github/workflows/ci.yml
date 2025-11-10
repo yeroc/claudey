@@ -168,56 +168,33 @@ jobs:
           MAVEN_OPTS: "-Xmx4g"
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
-      - name: Verify native binary exists
+      - name: Find and verify native binary
+        id: find_binary
         run: |
-          if [ ! -f target/mcp-database-server ]; then
+          # Find the native binary (matches mcp-database-server-* but not source-jar files)
+          BINARY=$(find target -maxdepth 1 -name 'mcp-database-server-*' -type f -executable | head -n1)
+          if [ -z "$BINARY" ]; then
             echo "Native binary not found!"
             exit 1
           fi
-          ls -lh target/mcp-database-server
+          echo "Found binary: $BINARY"
+          ls -lh "$BINARY"
+          echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
 
-      - name: Test native binary startup time
-        id: startup_test
+      - name: Test native binary functionality
         run: |
-          BINARY=target/mcp-database-server
-          echo "Testing binary: $BINARY"
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          echo "Testing binary functionality: $BINARY"
 
-          # Measure startup time (cross-platform)
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            # macOS - use Python for millisecond precision
-            START=$(python3 -c 'import time; print(int(time.time() * 1000))')
-            $BINARY --help || true
-            END=$(python3 -c 'import time; print(int(time.time() * 1000))')
-            ELAPSED_MS=$(( $END - $START ))
-          else
-            # Linux - use date with nanosecond precision
-            START=$(date +%s%N)
-            timeout 5s $BINARY --help || true
-            END=$(date +%s%N)
-            ELAPSED_MS=$(( ($END - $START) / 1000000 ))
-          fi
+          # Test --cli introspect command to verify binary actually works
+          $BINARY --cli introspect
 
-          echo "Startup time: ${ELAPSED_MS}ms"
-          echo "startup_time=${ELAPSED_MS}" >> $GITHUB_OUTPUT
-
-          # Verify startup time is reasonable (< 5000ms for --help)
-          if [ $ELAPSED_MS -gt 5000 ]; then
-            echo "Warning: Startup time exceeds 5000ms"
-          fi
-
-      - name: Test CLI interface
-        run: |
-          BINARY=target/mcp-database-server
-
-          # Test --cli flag
-          $BINARY --cli || true
-
-          echo "CLI interface test completed"
+          echo "Binary functional test completed successfully"
 
       - name: Calculate binary size
         id: binary_size
         run: |
-          BINARY=target/mcp-database-server
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
           if [[ "$OSTYPE" == "darwin"* ]]; then
             SIZE=$(stat -f%z "$BINARY")
           else
@@ -231,7 +208,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-binary-${{ matrix.platform }}
-          path: target/mcp-database-server
+          path: ${{ steps.find_binary.outputs.binary_path }}
           retention-days: 30
 
       - name: Comment PR with build stats
@@ -239,7 +216,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const startupTime = '${{ steps.startup_test.outputs.startup_time }}';
             const binarySize = '${{ steps.binary_size.outputs.size_mb }}';
             const platform = '${{ matrix.platform }}';
             const platformLabel = '${{ matrix.platform_label }}';
@@ -248,7 +224,6 @@ jobs:
 
             - **Platform**: ${platformLabel}
             - **Binary Size**: ${binarySize}MB
-            - **Startup Time** (--help): ${startupTime}ms
             - **Artifact**: \`native-binary-${platform}\`
 
             Native binary artifact available for download in workflow artifacts.`;

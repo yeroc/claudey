@@ -7,6 +7,9 @@ on:
       - '*.*.*-*'
       - '*.*.*-*-*'
 
+permissions:
+  contents: write
+
 jobs:
   test:
     name: Run Tests
@@ -145,14 +148,41 @@ jobs:
           MAVEN_OPTS: "-Xmx4g"
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
+      - name: Find and verify native binary
+        id: find_binary
+        run: |
+          # Find the native binary (matches mcp-database-server-* but not source-jar files)
+          BINARY=$(find target -maxdepth 1 -name 'mcp-database-server-*' -type f -executable | head -n1)
+          if [ -z "$BINARY" ]; then
+            echo "Native binary not found!"
+            exit 1
+          fi
+          echo "Found binary: $BINARY"
+          ls -lh "$BINARY"
+          echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
+
+      - name: Test native binary functionality
+        run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          echo "Testing binary functionality: $BINARY"
+
+          # Test --cli introspect command to verify binary actually works
+          $BINARY --cli introspect
+
+          echo "Binary functional test completed successfully"
+
       - name: Rename and checksum native binary
         run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          BINARY_NAME=$(basename "$BINARY")
+          RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
+
           cd target
-          mv mcp-database-server-${{ needs.test.outputs.version }} mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}
+          mv "$BINARY_NAME" "$RENAMED"
           if [[ "$OSTYPE" == "darwin"* ]]; then
-            shasum -a 256 mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}.sha256
+            shasum -a 256 "$RENAMED" > "${RENAMED}.sha256"
           else
-            sha256sum mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}.sha256
+            sha256sum "$RENAMED" > "${RENAMED}.sha256"
           fi
 
       - name: Upload native binary artifact
