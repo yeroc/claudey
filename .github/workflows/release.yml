@@ -166,8 +166,7 @@ jobs:
           BINARY=${{ steps.find_binary.outputs.binary_path }}
           echo "Testing binary functionality: $BINARY"
 
-          # Test --cli introspect command with SQLite in-memory database
-          export DB_URL="jdbc:sqlite::memory:"
+          # Test --cli introspect command to verify binary actually works
           $BINARY --cli introspect
 
           echo "Binary functional test completed successfully"
