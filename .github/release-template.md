@@ -1,4 +1,4 @@
-## 📦 Installation
+## Installation
 
 ### Native Binary
 
@@ -22,7 +22,7 @@ wget https://github.com/REPO/releases/download/VERSION/mcp-database-server-VERSI
 java -jar mcp-database-server-VERSION.jar --cli
 ```
 
-## 🔐 Checksum Verification
+## Checksum Verification
 
 Download the corresponding `.sha256` file and verify:
 ```bash
