@@ -204,7 +204,7 @@ jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-jar, build-native]
+    needs: [test, build-jar, build-native]
 
     steps:
       - name: Checkout code
