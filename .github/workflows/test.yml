@@ -70,11 +70,24 @@ jobs:
       - name: Package JVM application
         run: mvn --batch-mode package -DskipTests
 
+      - name: Check build output
+        run: |
+          echo "Contents of target directory:"
+          ls -la target/
+          if [ -d "target/quarkus-app" ]; then
+            echo "Fast-jar structure found in target/quarkus-app/"
+            ls -la target/quarkus-app/
+          fi
+          if [ -f "target/mcp-database-server.jar" ]; then
+            echo "Uber-jar found: target/mcp-database-server.jar"
+            ls -lh target/mcp-database-server.jar
+          fi
+
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: quarkus-app-jvm
-          path: target/mcp-database-server/
+          path: target/quarkus-app/
           retention-days: 30
 
       - name: Upload test results
