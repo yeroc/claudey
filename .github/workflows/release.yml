@@ -34,8 +34,7 @@ jobs:
       - name: Rename JAR artifact
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          mv target/quarkus-app/quarkus-run.jar target/mcp-database-server-${VERSION}.jar
-          cp target/mcp-database-server-${VERSION}.jar mcp-database-server-${VERSION}.jar
+          mv target/mcp-database-server/quarkus-run.jar mcp-database-server-${VERSION}.jar
 
       - name: Generate JAR checksum
         run: |
