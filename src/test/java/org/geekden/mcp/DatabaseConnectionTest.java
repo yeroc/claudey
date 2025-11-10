@@ -34,6 +34,11 @@ class DatabaseConnectionTest {
   @Test
   @EnabledIf("isDatabaseConfigured")
   void testDatabaseConnection() throws Exception {
+    // Print configuration for visibility
+    System.out.println("=== Database Configuration ===");
+    System.out.println("DB_URL: " + config.getJdbcUrl().orElse("not set"));
+    System.out.println("DB_USERNAME: " + config.getUsername().map(u -> u.substring(0, Math.min(u.length(), 3)) + "***").orElse("not set"));
+
     try (Connection conn = dataSource.get().getConnection()) {
       assertNotNull(conn, "Connection should not be null");
       assertFalse(conn.isClosed(), "Connection should be open");
@@ -44,8 +49,16 @@ class DatabaseConnectionTest {
 
       String productName = metaData.getDatabaseProductName();
       String productVersion = metaData.getDatabaseProductVersion();
+      String driverName = metaData.getDriverName();
+      String driverVersion = metaData.getDriverVersion();
+      String url = metaData.getURL();
 
-      System.out.println("Connected to: " + productName + " " + productVersion);
+      System.out.println("=== Active Database Connection ===");
+      System.out.println("Product: " + productName + " " + productVersion);
+      System.out.println("Driver: " + driverName + " " + driverVersion);
+      System.out.println("URL: " + url);
+      System.out.println("================================");
+
       assertNotNull(productName, "Database product name should not be null");
     }
   }
