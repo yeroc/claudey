@@ -81,8 +81,7 @@ jobs:
       - name: Rename native binary
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          BINARY=$(ls target/*-runner)
-          mv $BINARY mcp-database-server-${VERSION}-linux-x64
+          mv target/mcp-database-server mcp-database-server-${VERSION}-linux-x64
 
       - name: Generate native binary checksum
         run: |
@@ -98,8 +97,8 @@ jobs:
             mcp-database-server-*-linux-x64.sha256
 
   build-native-macos:
-    name: Build Native Binary (macOS)
-    runs-on: macos-latest
+    name: Build Native Binary (macOS ARM64)
+    runs-on: macos-14
 
     steps:
       - name: Checkout code
@@ -124,25 +123,25 @@ jobs:
         run: mvn --batch-mode package -Dnative -DskipTests
         env:
           MAVEN_OPTS: "-Xmx4g"
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
 
       - name: Rename native binary
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          BINARY=$(ls target/*-runner)
-          mv $BINARY mcp-database-server-${VERSION}-macos-x64
+          mv target/mcp-database-server mcp-database-server-${VERSION}-macos-arm64
 
       - name: Generate native binary checksum
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          shasum -a 256 mcp-database-server-${VERSION}-macos-x64 > mcp-database-server-${VERSION}-macos-x64.sha256
+          shasum -a 256 mcp-database-server-${VERSION}-macos-arm64 > mcp-database-server-${VERSION}-macos-arm64.sha256
 
       - name: Upload native macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: native-macos-x64
+          name: native-macos-arm64
           path: |
-            mcp-database-server-*-macos-x64
-            mcp-database-server-*-macos-x64.sha256
+            mcp-database-server-*-macos-arm64
+            mcp-database-server-*-macos-arm64.sha256
 
   create-release:
     name: Create GitHub Release
@@ -197,11 +196,11 @@ jobs:
           ./mcp-database-server-${VERSION}-linux-x64 --cli
           \`\`\`
 
-          **macOS:**
+          **macOS (Apple Silicon M1/M2/M3):**
           \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}-macos-x64
-          chmod +x mcp-database-server-${VERSION}-macos-x64
-          ./mcp-database-server-${VERSION}-macos-x64 --cli
+          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}-macos-arm64
+          chmod +x mcp-database-server-${VERSION}-macos-arm64
+          ./mcp-database-server-${VERSION}-macos-arm64 --cli
           \`\`\`
 
           ## 🔐 Checksum Verification
@@ -215,7 +214,7 @@ jobs:
 
           - JVM JAR (cross-platform, requires Java 21+)
           - Native binary for Linux x64
-          - Native binary for macOS x64
+          - Native binary for macOS ARM64 (Apple Silicon, macOS 11+)
           - SHA256 checksums for all artifacts
 
           ## 🚀 Features

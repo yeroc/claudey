@@ -59,16 +59,16 @@ jobs:
 
       - name: Verify native binary exists
         run: |
-          if [ ! -f target/*-runner ]; then
+          if [ ! -f target/mcp-database-server ]; then
             echo "Native binary not found!"
             exit 1
           fi
-          ls -lh target/*-runner
+          ls -lh target/mcp-database-server
 
       - name: Test native binary startup time
         id: startup_test
         run: |
-          BINARY=$(ls target/*-runner)
+          BINARY=target/mcp-database-server
           echo "Testing binary: $BINARY"
 
           # Measure startup time (cross-platform)
@@ -96,7 +96,7 @@ jobs:
 
       - name: Test CLI interface
         run: |
-          BINARY=$(ls target/*-runner)
+          BINARY=target/mcp-database-server
 
           # Test --cli flag
           $BINARY --cli || true
@@ -106,7 +106,7 @@ jobs:
       - name: Calculate binary size
         id: binary_size
         run: |
-          BINARY=$(ls target/*-runner)
+          BINARY=target/mcp-database-server
           if [[ "$OSTYPE" == "darwin"* ]]; then
             SIZE=$(stat -f%z "$BINARY")
           else
@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: native-binary-${{ matrix.platform }}
-          path: target/*-runner
+          path: target/mcp-database-server
           retention-days: 30
 
       - name: Comment PR with build stats
