@@ -67,6 +67,10 @@ jobs:
           DB_URL: "jdbc:sqlite::memory:"
         run: mvn --batch-mode test
 
+      - name: Generate test coverage report
+        run: mvn --batch-mode jacoco:report
+        continue-on-error: true
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
@@ -74,3 +78,12 @@ jobs:
           name: test-results
           path: target/surefire-reports/
           retention-days: 7
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: target/site/jacoco/
+          retention-days: 7
+          if-no-files-found: ignore
