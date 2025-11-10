@@ -47,11 +47,38 @@ public class CliCommandHandler {
 
       String command = args[0];
 
-      // Validate command is recognized
+      // Validate command is recognized and has valid arguments
       switch (command) {
         case "introspect":
+          if (args.length > 3) {
+            System.err.println("Invalid arguments for introspect command");
+            printUsage();
+            return 1;
+          }
+          break;
         case "query":
-          break;  // Valid commands
+          if (args.length < 2) {
+            System.err.println("Missing SQL query");
+            printUsage();
+            return 1;
+          }
+          // Validate --page argument if present
+          for (int i = 2; i < args.length; i++) {
+            if ("--page".equals(args[i])) {
+              if (i + 1 >= args.length) {
+                System.err.println("Missing value for --page");
+                return 1;
+              }
+              try {
+                Integer.parseInt(args[i + 1]);
+              } catch (NumberFormatException e) {
+                System.err.println("Invalid page number: " + args[i + 1]);
+                return 1;
+              }
+              break;
+            }
+          }
+          break;
         default:
           System.err.println("Unknown command: " + command);
           printUsage();
@@ -83,13 +110,7 @@ public class CliCommandHandler {
   }
 
   private int handleIntrospect(String[] args) {
-    // Validate arguments before database access
-    if (args.length > 3) {
-      System.err.println("Invalid arguments for introspect command");
-      printUsage();
-      return 1;
-    }
-
+    // Arguments already validated in execute()
     try (Connection conn = dataSource.get().getConnection()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
