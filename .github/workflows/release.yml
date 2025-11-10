@@ -3,7 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
+      - '*.*.*-*'
 
 jobs:
   build-jvm:
@@ -33,12 +34,12 @@ jobs:
 
       - name: Rename JAR artifact
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           mv target/mcp-database-server/quarkus-run.jar mcp-database-server-${VERSION}.jar
 
       - name: Generate JAR checksum
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           sha256sum mcp-database-server-${VERSION}.jar > mcp-database-server-${VERSION}.jar.sha256
 
       - name: Upload JVM artifact
@@ -79,12 +80,12 @@ jobs:
 
       - name: Rename native binary
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           mv target/mcp-database-server mcp-database-server-${VERSION}-linux-x64
 
       - name: Generate native binary checksum
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           sha256sum mcp-database-server-${VERSION}-linux-x64 > mcp-database-server-${VERSION}-linux-x64.sha256
 
       - name: Upload native Linux artifact
@@ -126,12 +127,12 @@ jobs:
 
       - name: Rename native binary
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           mv target/mcp-database-server mcp-database-server-${VERSION}-macos-arm64
 
       - name: Generate native binary checksum
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           shasum -a 256 mcp-database-server-${VERSION}-macos-arm64 > mcp-database-server-${VERSION}-macos-arm64.sha256
 
       - name: Upload native macOS artifact
@@ -168,7 +169,7 @@ jobs:
       - name: Extract version from tag
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF#refs/tags/}
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Generate release notes
@@ -182,7 +183,7 @@ jobs:
 
           ### JVM Mode (Requires Java 21+)
           \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}.jar
+          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/mcp-database-server-${VERSION}.jar
           java -jar mcp-database-server-${VERSION}.jar --cli
           \`\`\`
 
@@ -190,14 +191,14 @@ jobs:
 
           **Linux x64:**
           \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}-linux-x64
+          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/mcp-database-server-${VERSION}-linux-x64
           chmod +x mcp-database-server-${VERSION}-linux-x64
           ./mcp-database-server-${VERSION}-linux-x64 --cli
           \`\`\`
 
           **macOS (Apple Silicon M1/M2/M3):**
           \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/v${VERSION}/mcp-database-server-${VERSION}-macos-arm64
+          wget https://github.com/${{ github.repository }}/releases/download/${VERSION}/mcp-database-server-${VERSION}-macos-arm64
           chmod +x mcp-database-server-${VERSION}-macos-arm64
           ./mcp-database-server-${VERSION}-macos-arm64 --cli
           \`\`\`
