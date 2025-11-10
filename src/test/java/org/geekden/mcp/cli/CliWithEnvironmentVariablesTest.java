@@ -37,23 +37,14 @@ class CliWithEnvironmentVariablesTest {
     assertThat("Database should be configured via environment variables",
         config.isConfigured(), is(true));
 
-    String stdout = tapSystemOut(() -> {
-      String stderr = tapSystemErr(() -> {
-        int exitCode = cliHandler.execute(new String[]{"introspect"});
-
-        assertThat("CLI introspect should succeed with configured database",
-            exitCode, is(0));
-
-        return stderr;
-      });
-
-      assertThat("Should not show database configuration error",
-          stderr, not(containsString("Database not configured")));
+    String stderr = tapSystemErr(() -> {
+      int exitCode = cliHandler.execute(new String[]{"introspect"});
+      assertThat("CLI introspect should succeed with configured database",
+          exitCode, is(0));
     });
 
-    System.out.println("=== CLI Output ===");
-    System.out.println(stdout);
-    System.out.println("==================");
+    assertThat("Should not show database configuration error",
+        stderr, not(containsString("Database not configured")));
   }
 
   @Test
@@ -62,23 +53,14 @@ class CliWithEnvironmentVariablesTest {
     assertThat("Database should be configured via environment variables",
         config.isConfigured(), is(true));
 
-    String stdout = tapSystemOut(() -> {
-      String stderr = tapSystemErr(() -> {
-        int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
-
-        assertThat("CLI query should succeed with configured database",
-            exitCode, is(0));
-
-        return stderr;
-      });
-
-      assertThat("Should not show database configuration error",
-          stderr, not(containsString("Database not configured")));
+    String stderr = tapSystemErr(() -> {
+      int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
+      assertThat("CLI query should succeed with configured database",
+          exitCode, is(0));
     });
 
-    System.out.println("=== CLI Query Output ===");
-    System.out.println(stdout);
-    System.out.println("========================");
+    assertThat("Should not show database configuration error",
+        stderr, not(containsString("Database not configured")));
   }
 
   @Test
