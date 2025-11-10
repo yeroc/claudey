@@ -41,7 +41,10 @@ public class MainApplication implements QuarkusApplication {
       LOG.info("Running in CLI mode");
       // Remove --cli from args and pass the rest to CLI handler
       String[] cliArgs = Arrays.copyOfRange(args, 1, args.length);
-      return cliHandler.execute(cliArgs);
+      int exitCode = cliHandler.execute(cliArgs);
+      // Signal Quarkus to exit with the proper exit code
+      Quarkus.asyncExit(exitCode);
+      return exitCode;
     }
 
     // Default: Run as MCP stdio server
@@ -55,6 +58,9 @@ public class MainApplication implements QuarkusApplication {
   }
 
   public static void main(String[] args) {
-    Quarkus.run(MainApplication.class, args);
+    Quarkus.run(MainApplication.class, (exitCode, exception) -> {
+      // Ensure proper exit code propagation for CLI mode
+      System.exit(exitCode);
+    }, args);
   }
 }
