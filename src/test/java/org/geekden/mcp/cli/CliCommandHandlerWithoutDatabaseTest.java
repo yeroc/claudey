@@ -13,11 +13,11 @@ import static org.hamcrest.Matchers.*;
 import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemErr;
 
 /**
- * Test CLI behavior when database is not configured.
+ * Test CLI command handler behavior when database is not configured.
  */
 @QuarkusTest
-@TestProfile(CliWithoutDatabaseTest.NoDatabaseProfile.class)
-class CliWithoutDatabaseTest {
+@TestProfile(CliCommandHandlerWithoutDatabaseTest.NoDatabaseProfile.class)
+class CliCommandHandlerWithoutDatabaseTest {
 
   /**
    * Test profile that clears database configuration.
