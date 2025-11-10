@@ -8,8 +8,16 @@ on:
 
 jobs:
   native-build:
-    name: Build Native Binary
-    runs-on: ubuntu-latest
+    name: Build Native Binary (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+          - os: macos-latest
+            platform: macos-arm64
 
     steps:
       - name: Checkout code
@@ -59,12 +67,21 @@ jobs:
           BINARY=$(ls target/*-runner)
           echo "Testing binary: $BINARY"
 
-          # Measure startup time
-          START=$(date +%s%N)
-          timeout 5s $BINARY --help || true
-          END=$(date +%s%N)
+          # Measure startup time (cross-platform)
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS - use Python for millisecond precision
+            START=$(python3 -c 'import time; print(int(time.time() * 1000))')
+            $BINARY --help || true
+            END=$(python3 -c 'import time; print(int(time.time() * 1000))')
+            ELAPSED_MS=$(( $END - $START ))
+          else
+            # Linux - use date with nanosecond precision
+            START=$(date +%s%N)
+            timeout 5s $BINARY --help || true
+            END=$(date +%s%N)
+            ELAPSED_MS=$(( ($END - $START) / 1000000 ))
+          fi
 
-          ELAPSED_MS=$(( ($END - $START) / 1000000 ))
           echo "Startup time: ${ELAPSED_MS}ms"
           echo "startup_time=${ELAPSED_MS}" >> $GITHUB_OUTPUT
 
@@ -86,7 +103,11 @@ jobs:
         id: binary_size
         run: |
           BINARY=$(ls target/*-runner)
-          SIZE=$(stat -c%s "$BINARY")
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            SIZE=$(stat -f%z "$BINARY")
+          else
+            SIZE=$(stat -c%s "$BINARY")
+          fi
           SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
           echo "Binary size: ${SIZE_MB}MB"
           echo "size_mb=${SIZE_MB}" >> $GITHUB_OUTPUT
@@ -94,7 +115,7 @@ jobs:
       - name: Upload native binary artifact
         uses: actions/upload-artifact@v4
         with:
-          name: native-binary-linux-x64
+          name: native-binary-${{ matrix.platform }}
           path: target/*-runner
           retention-days: 30
 
@@ -105,12 +126,13 @@ jobs:
           script: |
             const startupTime = '${{ steps.startup_test.outputs.startup_time }}';
             const binarySize = '${{ steps.binary_size.outputs.size_mb }}';
+            const platform = '${{ matrix.platform }}';
 
-            const body = `## Native Build Results 🚀
+            const body = `## Native Build Results 🚀 (${platform})
 
             - **Binary Size**: ${binarySize}MB
             - **Startup Time** (--help): ${startupTime}ms
-            - **Platform**: Linux x64
+            - **Platform**: ${platform}
 
             Native binary artifact available for download in workflow artifacts.`;
 
