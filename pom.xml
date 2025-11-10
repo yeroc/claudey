@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   
   <groupId>org.geekden</groupId>
-  <artifactId>test-app</artifactId>
+  <artifactId>mcp-database-server</artifactId>
   <version>${revision}</version>
   <packaging>jar</packaging>
 
@@ -15,7 +15,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
     <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
-    <quarkus.package.output-name>mcp-database-server</quarkus.package.output-name>
+    <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
     <quarkus.platform.version>3.27.0</quarkus.platform.version>
 
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
@@ -137,7 +137,7 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <native.image.path>${project.build.directory}/mcp-database-server</native.image.path>
+                    <native.image.path>${project.build.directory}/${project.build.finalName}</native.image.path>
                     <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     <maven.home>${maven.home}</maven.home>
                   </systemPropertyVariables>

@@ -91,21 +91,20 @@ jobs:
           distribution: 'temurin'
 
       - name: Build uber-jar
-        run: mvn --batch-mode clean package -DskipTests -Dquarkus.package.jar.type=uber-jar -Drevision=${{ needs.test.outputs.version }}
-
-      - name: Rename uber-jar
-        run: mv target/mcp-database-server.jar mcp-database-server-${{ needs.test.outputs.version }}.jar
+        run: mvn --batch-mode clean package -DskipTests -Drevision=${{ needs.test.outputs.version }}
 
       - name: Generate JAR checksum
-        run: sha256sum mcp-database-server-${{ needs.test.outputs.version }}.jar > mcp-database-server-${{ needs.test.outputs.version }}.jar.sha256
+        run: |
+          cd target
+          sha256sum mcp-database-server-${{ needs.test.outputs.version }}.jar > mcp-database-server-${{ needs.test.outputs.version }}.jar.sha256
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: jar
           path: |
-            mcp-database-server-*.jar
-            mcp-database-server-*.jar.sha256
+            target/mcp-database-server-*.jar
+            target/mcp-database-server-*.jar.sha256
 
   build-native:
     name: Build Native Binary (${{ matrix.platform }})
@@ -146,11 +145,10 @@ jobs:
           MAVEN_OPTS: "-Xmx4g"
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
-      - name: Rename native binary
-        run: mv target/mcp-database-server mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}
-
-      - name: Generate native binary checksum
+      - name: Rename and checksum native binary
         run: |
+          cd target
+          mv mcp-database-server-${{ needs.test.outputs.version }} mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}
           if [[ "$OSTYPE" == "darwin"* ]]; then
             shasum -a 256 mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }} > mcp-database-server-${{ needs.test.outputs.version }}-${{ matrix.platform }}.sha256
           else
@@ -162,8 +160,8 @@ jobs:
         with:
           name: native-${{ matrix.platform }}
           path: |
-            mcp-database-server-*-${{ matrix.platform }}
-            mcp-database-server-*-${{ matrix.platform }}.sha256
+            target/mcp-database-server-*-${{ matrix.platform }}
+            target/mcp-database-server-*-${{ matrix.platform }}.sha256
 
   create-release:
     name: Create GitHub Release

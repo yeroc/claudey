@@ -108,13 +108,13 @@ jobs:
           distribution: 'temurin'
 
       - name: Build uber-jar
-        run: mvn --batch-mode package -DskipTests -Dquarkus.package.jar.type=uber-jar
+        run: mvn --batch-mode package -DskipTests
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: mcp-database-server-jar
-          path: target/mcp-database-server.jar
+          path: target/mcp-database-server-*.jar
           retention-days: 30
 
   build-native:
