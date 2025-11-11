@@ -7,6 +7,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
+import org.geekden.mcp.service.IntrospectionService;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
@@ -26,6 +27,9 @@ public class DatabaseMcpTools {
 
   @Inject
   DatabaseConfig config;
+
+  @Inject
+  IntrospectionService introspectionService;
 
   /**
    * Hierarchical schema introspection tool.
@@ -97,18 +101,30 @@ public class DatabaseMcpTools {
     }
   }
 
-  // Phase 3 implementation
   private String listSchemas(DatabaseMetaData metaData) {
-    return "Schema listing not yet implemented.";
+    try {
+      return introspectionService.listSchemas(metaData);
+    } catch (Exception e) {
+      LOG.error("Error listing schemas", e);
+      return "Error listing schemas: " + e.getMessage();
+    }
   }
 
-  // Phase 3 implementation
   private String listTables(DatabaseMetaData metaData, String schema) {
-    return "Table listing not yet implemented for schema: " + schema;
+    try {
+      return introspectionService.listTables(metaData, schema);
+    } catch (Exception e) {
+      LOG.error("Error listing tables in schema: " + schema, e);
+      return "Error listing tables in schema " + schema + ": " + e.getMessage();
+    }
   }
 
-  // Phase 3 implementation
   private String describeTable(DatabaseMetaData metaData, String schema, String table) {
-    return "Table description not yet implemented for: " + schema + "." + table;
+    try {
+      return introspectionService.describeTable(metaData, schema, table);
+    } catch (Exception e) {
+      LOG.error("Error describing table: " + schema + "." + table, e);
+      return "Error describing table " + schema + "." + table + ": " + e.getMessage();
+    }
   }
 }

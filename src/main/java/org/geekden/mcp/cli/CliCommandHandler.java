@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
+import org.geekden.mcp.service.IntrospectionService;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
@@ -30,6 +31,9 @@ public class CliCommandHandler {
 
   @Inject
   DatabaseConfig config;
+
+  @Inject
+  IntrospectionService introspectionService;
 
   /**
    * Execute CLI command and return exit code.
@@ -93,23 +97,26 @@ public class CliCommandHandler {
     try (Connection conn = dataSource.get().getConnection()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
+      String result;
       if (args.length == 1) {
         // List all schemas
-        System.out.println("Listing all schemas...");
-        System.out.println("(Implementation pending - Phase 3)");
+        result = introspectionService.listSchemas(metaData);
       } else if (args.length == 2) {
         // List tables in schema
         String schema = args[1];
-        System.out.println("Listing tables in schema: " + schema);
-        System.out.println("(Implementation pending - Phase 3)");
+        result = introspectionService.listTables(metaData, schema);
       } else if (args.length == 3) {
         // Describe table
         String schema = args[1];
         String table = args[2];
-        System.out.println("Describing table: " + schema + "." + table);
-        System.out.println("(Implementation pending - Phase 3)");
+        result = introspectionService.describeTable(metaData, schema, table);
+      } else {
+        System.err.println("Invalid arguments for introspect command");
+        printUsage();
+        return 1;
       }
 
+      System.out.println(result);
       return 0;
     } catch (Exception e) {
       System.err.println("Introspection failed: " + e.getMessage());
