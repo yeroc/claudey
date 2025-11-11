@@ -11,7 +11,8 @@ import org.junit.jupiter.api.condition.EnabledIf;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Test database connectivity.
@@ -28,25 +29,43 @@ class DatabaseConnectionTest {
 
   @Test
   void testDataSourceInjection() {
-    assertNotNull(dataSource, "DataSource instance should be injected");
+    assertThat("DataSource instance should be injected",
+        dataSource, is(notNullValue()));
   }
 
   @Test
   @EnabledIf("isDatabaseConfigured")
   void testDatabaseConnection() throws Exception {
+    // Print configuration for visibility
+    System.out.println("=== Database Configuration ===");
+    System.out.println("DB_URL: " + config.getJdbcUrl().orElse("not set"));
+    System.out.println("DB_USERNAME: " + config.getUsername().map(u -> u.substring(0, Math.min(u.length(), 3)) + "***").orElse("not set"));
+
     try (Connection conn = dataSource.get().getConnection()) {
-      assertNotNull(conn, "Connection should not be null");
-      assertFalse(conn.isClosed(), "Connection should be open");
+      assertThat("Connection should not be null",
+          conn, is(notNullValue()));
+      assertThat("Connection should be open",
+          conn.isClosed(), is(false));
 
       // Get database metadata
       DatabaseMetaData metaData = conn.getMetaData();
-      assertNotNull(metaData, "DatabaseMetaData should not be null");
+      assertThat("DatabaseMetaData should not be null",
+          metaData, is(notNullValue()));
 
       String productName = metaData.getDatabaseProductName();
       String productVersion = metaData.getDatabaseProductVersion();
+      String driverName = metaData.getDriverName();
+      String driverVersion = metaData.getDriverVersion();
+      String url = metaData.getURL();
 
-      System.out.println("Connected to: " + productName + " " + productVersion);
-      assertNotNull(productName, "Database product name should not be null");
+      System.out.println("=== Active Database Connection ===");
+      System.out.println("Product: " + productName + " " + productVersion);
+      System.out.println("Driver: " + driverName + " " + driverVersion);
+      System.out.println("URL: " + url);
+      System.out.println("================================");
+
+      assertThat("Database product name should not be null",
+          productName, is(notNullValue()));
     }
   }
 
@@ -57,12 +76,16 @@ class DatabaseConnectionTest {
     try (Connection conn1 = dataSource.get().getConnection();
          Connection conn2 = dataSource.get().getConnection()) {
 
-      assertNotNull(conn1, "First connection should not be null");
-      assertNotNull(conn2, "Second connection should not be null");
+      assertThat("First connection should not be null",
+          conn1, is(notNullValue()));
+      assertThat("Second connection should not be null",
+          conn2, is(notNullValue()));
 
       // Both connections should be valid
-      assertTrue(conn1.isValid(5), "First connection should be valid");
-      assertTrue(conn2.isValid(5), "Second connection should be valid");
+      assertThat("First connection should be valid",
+          conn1.isValid(5), is(true));
+      assertThat("Second connection should be valid",
+          conn2.isValid(5), is(true));
     }
   }
 

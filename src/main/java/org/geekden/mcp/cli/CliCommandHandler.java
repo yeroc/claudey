@@ -39,27 +39,36 @@ public class CliCommandHandler {
    */
   public int execute(String[] args) {
     try {
+      // Check for arguments
       if (args.length == 0) {
         printUsage();
         return 1;
       }
 
+      String command = args[0];
+
+      // Check command is recognized
+      if (!isValidCommand(command)) {
+        System.err.println("Unknown command: " + command);
+        printUsage();
+        return 1;
+      }
+
+      // Check database configuration
       if (!config.isConfigured()) {
         System.err.println("Error: Database not configured.");
         System.err.println("Set DB_URL, DB_USERNAME, and DB_PASSWORD environment variables.");
         return 1;
       }
 
-      String command = args[0];
-
+      // Execute command
       switch (command) {
         case "introspect":
           return handleIntrospect(args);
         case "query":
           return handleQuery(args);
         default:
-          System.err.println("Unknown command: " + command);
-          printUsage();
+          // Should never reach here
           return 1;
       }
     } catch (Exception e) {
@@ -69,7 +78,18 @@ public class CliCommandHandler {
     }
   }
 
+  private boolean isValidCommand(String command) {
+    return "introspect".equals(command) || "query".equals(command);
+  }
+
   private int handleIntrospect(String[] args) {
+    // Validate arguments
+    if (args.length > 3) {
+      System.err.println("Invalid arguments for introspect command");
+      printUsage();
+      return 1;
+    }
+
     try (Connection conn = dataSource.get().getConnection()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
@@ -88,10 +108,6 @@ public class CliCommandHandler {
         String table = args[2];
         System.out.println("Describing table: " + schema + "." + table);
         System.out.println("(Implementation pending - Phase 3)");
-      } else {
-        System.err.println("Invalid arguments for introspect command");
-        printUsage();
-        return 1;
       }
 
       return 0;
@@ -114,7 +130,11 @@ public class CliCommandHandler {
 
     // Parse --page argument
     for (int i = 2; i < args.length; i++) {
-      if ("--page".equals(args[i]) && i + 1 < args.length) {
+      if ("--page".equals(args[i])) {
+        if (i + 1 >= args.length) {
+          System.err.println("Missing value for --page");
+          return 1;
+        }
         try {
           page = Integer.parseInt(args[i + 1]);
         } catch (NumberFormatException e) {

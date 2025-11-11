@@ -3,15 +3,19 @@
   <modelVersion>4.0.0</modelVersion>
   
   <groupId>org.geekden</groupId>
-  <artifactId>test-app</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <artifactId>mcp-database-server</artifactId>
+  <version>${revision}</version>
   <packaging>jar</packaging>
-  
+
   <properties>
+    <revision>HEAD-SNAPSHOT</revision>
+
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+    <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
+    <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
     <quarkus.platform.version>3.27.0</quarkus.platform.version>
 
     <compiler-plugin.version>3.13.0</compiler-plugin.version>
@@ -31,35 +35,41 @@
   </dependencyManagement>
   
   <dependencies>
-    <!-- Core Quarkus -->
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-arc</artifactId>
-    </dependency>
-
-    <!-- MCP Server -->
-    <dependency>
-      <groupId>io.quarkiverse.mcp</groupId>
-      <artifactId>quarkus-mcp-server-stdio</artifactId>
-      <version>1.7.0</version>
-    </dependency>
-
-    <!-- Database -->
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-jdbc-postgresql</artifactId>
-    </dependency>
+    <!-- Compile Dependencies -->
     <dependency>
       <groupId>io.quarkiverse.jdbc</groupId>
       <artifactId>quarkus-jdbc-sqlite</artifactId>
       <version>3.0.11</version>
     </dependency>
     <dependency>
+      <groupId>io.quarkiverse.mcp</groupId>
+      <artifactId>quarkus-mcp-server-stdio</artifactId>
+      <version>1.7.0</version>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-agroal</artifactId>
     </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jdbc-postgresql</artifactId>
+    </dependency>
 
-    <!-- Testing -->
+    <!-- Test Dependencies -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jacoco</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -67,8 +77,15 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>2.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>uk.org.webcompere</groupId>
+      <artifactId>system-stubs-jupiter</artifactId>
+      <version>2.1.8</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -132,7 +149,7 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                    <native.image.path>${project.build.directory}/${project.build.finalName}</native.image.path>
                     <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
                     <maven.home>${maven.home}</maven.home>
                   </systemPropertyVariables>

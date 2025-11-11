@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is an MCP (Model Context Protocol) Database Server built with Quarkus framework. The project uses Java 21 and follows standard Maven directory structure. The main application implements QuarkusApplication interface for command-line execution.
 
 - **Group ID**: org.geekden
-- **Artifact ID**: test-app
+- **Artifact ID**: mcp-database-server
 - **Java Version**: 21
 - **Framework**: Quarkus 3.27.0 LTS
 - **MCP Extension**: Quarkiverse MCP Server stdio 1.7.0
@@ -37,6 +37,61 @@ java -jar target/quarkus-app/quarkus-run.jar  # Run packaged application
 - Follow standard Java naming conventions
 - Use JUnit 5 for testing
 
+## Testing Standards
+
+**IMPORTANT**: All test assertions must use Hamcrest matchers. JUnit assertions (`assertEquals`, `assertTrue`, `assertFalse`, `assertNull`, etc.) are **BANNED**.
+
+### Required Assertion Style
+
+**Use Hamcrest `assertThat()` exclusively:**
+
+```java
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+
+// Good: Hamcrest assertions
+assertThat("Should return exit code 1", exitCode, is(1));
+assertThat("Should not be null", object, is(notNullValue()));
+assertThat("Should contain error", output, containsString("Error"));
+assertThat("Should match pattern", text, anyOf(containsString("foo"), containsString("bar")));
+
+// Bad: JUnit assertions (BANNED)
+assertEquals(1, exitCode);           // NO!
+assertNotNull(object);               // NO!
+assertTrue(output.contains("Error")); // NO!
+```
+
+### Stream Capture
+
+Use **system-stubs** programmatically for stdout/stderr capture (the extension conflicts with `@QuarkusTest`):
+
+```java
+import static uk.org.webcompere.systemstubs.SystemStubs.tapSystemErr;
+
+@QuarkusTest
+class MyTest {
+
+  @Test
+  void testErrorOutput() throws Exception {
+    String stderr = tapSystemErr(() -> {
+      // Code that writes to System.err
+      int exitCode = someMethod();
+      assertThat("Should succeed", exitCode, is(0));
+    });
+
+    assertThat("Should print error message",
+        stderr, containsString("Error"));
+  }
+}
+```
+
+### Benefits
+
+- **Better error messages**: Hamcrest shows actual vs expected values with clear descriptions
+- **Readable assertions**: Natural language-like syntax
+- **Consistent style**: All tests follow the same pattern
+- **No more `<true> but was: <false>`**: Hamcrest provides meaningful failure output
+
 ## Dependencies
 
 The project includes:
@@ -45,6 +100,8 @@ The project includes:
 - Agroal connection pooling
 - JUnit 5 for testing
 - Quarkus JUnit5 for integration testing
+- Hamcrest 2.2 for test assertions
+- system-stubs-jupiter 2.1.8 for stream capture in tests
 
 ## Maven Proxy Configuration (Claude Code on the Web)
 

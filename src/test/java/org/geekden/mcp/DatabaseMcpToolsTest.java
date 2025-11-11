@@ -4,7 +4,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Test MCP tools structure and basic functionality.
@@ -17,14 +18,16 @@ class DatabaseMcpToolsTest {
 
   @Test
   void testMcpToolsInjection() {
-    assertNotNull(mcpTools, "DatabaseMcpTools should be injected");
+    assertThat("DatabaseMcpTools should be injected",
+        mcpTools, is(notNullValue()));
   }
 
   @Test
   void testIntrospectWithoutDatabase() {
     // Without DB_URL set, should return configuration error
     String result = mcpTools.introspect(null, null);
-    assertNotNull(result, "Result should not be null");
+    assertThat("Result should not be null",
+        result, is(notNullValue()));
     // May contain error message or placeholder depending on config state
   }
 
@@ -32,7 +35,8 @@ class DatabaseMcpToolsTest {
   void testExecuteSqlWithoutDatabase() {
     // Without DB_URL set, should return configuration error
     String result = mcpTools.executeSql("SELECT 1", 1);
-    assertNotNull(result, "Result should not be null");
+    assertThat("Result should not be null",
+        result, is(notNullValue()));
     // May contain error message or placeholder depending on config state
   }
 
@@ -40,7 +44,7 @@ class DatabaseMcpToolsTest {
   void testExecuteSqlInvalidPage() {
     // Page number must be >= 1
     String result = mcpTools.executeSql("SELECT 1", 0);
-    assertTrue(result.contains("Error") || result.contains("must be"),
-        "Should return error for invalid page number");
+    assertThat("Should return error for invalid page number",
+        result, anyOf(containsString("Error"), containsString("must be")));
   }
 }

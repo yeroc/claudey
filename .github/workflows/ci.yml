@@ -1,0 +1,212 @@
+name: CI
+
+on:
+  workflow_dispatch:  # Manual trigger only - run from GitHub Actions tab
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Maven packages
+        id: cache-maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Check cache status
+        run: |
+          if [ "${{ steps.cache-maven.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache hit - using cached Maven repository"
+            echo "Cache size: $(du -sh ~/.m2/repository 2>/dev/null || echo 'N/A')"
+          else
+            echo "⚠️ Cache miss - will download dependencies"
+          fi
+
+      - name: Run tests with PostgreSQL
+        env:
+          DB_KIND: postgresql
+          DB_URL: jdbc:postgresql://localhost:5432/testdb
+          DB_USERNAME: testuser
+          DB_PASSWORD: testpass
+        run: mvn --batch-mode clean verify
+
+      - name: Run tests with SQLite
+        env:
+          DB_KIND: sqlite
+          DB_URL: "jdbc:sqlite::memory:"
+        run: mvn --batch-mode clean verify
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: target/surefire-reports/
+          retention-days: 7
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: target/jacoco-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  build-jar:
+    name: Build JAR
+    runs-on: ubuntu-latest
+    needs: [test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build uber-jar
+        run: mvn --batch-mode package -DskipTests
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-database-server-jar
+          path: target/mcp-database-server-*.jar
+          retention-days: 30
+
+  build-native:
+    name: Build Native Binary (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    needs: [test]
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            platform_label: "Linux x64"
+          - os: macos-14
+            platform: macos-arm64
+            macos_target: "11.0"
+            platform_label: "macOS 11+ (ARM64)"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Maven packages
+        id: cache-maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check cache status
+        run: |
+          if [ "${{ steps.cache-maven.outputs.cache-hit }}" == "true" ]; then
+            echo "✅ Cache hit - using cached Maven repository"
+            echo "Cache size: $(du -sh ~/.m2/repository 2>/dev/null || echo 'N/A')"
+          else
+            echo "⚠️ Cache miss - will download dependencies"
+          fi
+
+      - name: Build native binary
+        run: mvn --batch-mode package -Dnative -DskipTests
+        env:
+          MAVEN_OPTS: "-Xmx4g"
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
+
+      - name: Find and verify native binary
+        id: find_binary
+        run: |
+          # Find the native binary (exclude .jar, .json, .txt files)
+          BINARY=$(find target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
+          if [ -z "$BINARY" ]; then
+            echo "Native binary not found!"
+            exit 1
+          fi
+          echo "Found binary: $BINARY"
+          ls -lh "$BINARY"
+          echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
+
+      - name: Test native binary functionality
+        run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          echo "Testing binary functionality: $BINARY"
+
+          # Test --cli introspect command with SQLite in-memory database
+          export DB_KIND="sqlite"
+          export DB_URL="jdbc:sqlite::memory:"
+          $BINARY --cli introspect
+
+          echo "Binary functional test completed successfully"
+
+      - name: Calculate binary size
+        id: binary_size
+        run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            SIZE=$(stat -f%z "$BINARY")
+          else
+            SIZE=$(stat -c%s "$BINARY")
+          fi
+          SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
+          echo "Binary size: ${SIZE_MB}MB"
+          echo "size_mb=${SIZE_MB}" >> $GITHUB_OUTPUT
+
+      - name: Upload native binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-binary-${{ matrix.platform }}
+          path: ${{ steps.find_binary.outputs.binary_path }}
+          retention-days: 30
