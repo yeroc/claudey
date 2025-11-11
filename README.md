@@ -1,7 +1,6 @@
 # MCP Database Server
 
-[![Test](https://github.com/yeroc/claudey/actions/workflows/test.yml/badge.svg)](https://github.com/yeroc/claudey/actions/workflows/test.yml)
-[![Native Build](https://github.com/yeroc/claudey/actions/workflows/native-build.yml/badge.svg)](https://github.com/yeroc/claudey/actions/workflows/native-build.yml)
+[![CI](https://github.com/yeroc/claudey/actions/workflows/ci.yml/badge.svg)](https://github.com/yeroc/claudey/actions/workflows/ci.yml)
 
 A Model Context Protocol (MCP) server for database introspection and SQL execution, built with Quarkus.
 
