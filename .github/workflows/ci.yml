@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  workflow_dispatch:  # Manual trigger only - run from GitHub Actions tab
+  pull_request:  # Only on PRs - not every commit to branches
 
 jobs:
   test:
