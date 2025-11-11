@@ -26,6 +26,11 @@ import java.util.Arrays;
 @QuarkusMain
 public class MainApplication implements QuarkusApplication {
 
+  static {
+    // Set LogManager before any JUL access (must be in static block)
+    System.setProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager");
+  }
+
   private static final Logger LOG = Logger.getLogger(MainApplication.class);
 
   @Inject
@@ -38,12 +43,16 @@ public class MainApplication implements QuarkusApplication {
 
     // Check for CLI mode
     if (args.length > 0 && "--cli".equals(args[0])) {
-      LOG.info("Running in CLI mode");
+      LOG.info("CLI mode detected");
       // Remove --cli from args and pass the rest to CLI handler
       String[] cliArgs = Arrays.copyOfRange(args, 1, args.length);
       int exitCode = cliHandler.execute(cliArgs);
-      // Signal Quarkus to exit with the proper exit code
-      Quarkus.asyncExit(exitCode);
+
+      // Force flush before return
+      System.out.flush();
+      System.err.flush();
+
+      LOG.info("CLI execution complete with exit code: " + exitCode);
       return exitCode;
     }
 

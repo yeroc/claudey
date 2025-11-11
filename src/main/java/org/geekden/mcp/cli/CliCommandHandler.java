@@ -1,6 +1,5 @@
 package org.geekden.mcp.cli;
 
-import io.agroal.api.AgroalDataSource;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -27,7 +26,7 @@ public class CliCommandHandler {
   private static final Logger LOG = Logger.getLogger(CliCommandHandler.class);
 
   @Inject
-  Instance<AgroalDataSource> dataSource;
+  Instance<Connection> connection;
 
   @Inject
   DatabaseConfig config;
@@ -94,19 +93,20 @@ public class CliCommandHandler {
       return 1;
     }
 
-    try (Connection conn = dataSource.get().getConnection()) {
+    // DEBUG: Test if stdout works at all
+    System.out.println("DEBUG: handleIntrospect called with " + args.length + " args");
+    System.out.flush();
+
+    try (Connection conn = connection.get()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
       String result;
       if (args.length == 1) {
-        // List all schemas
         result = introspectionService.listSchemas(metaData);
       } else if (args.length == 2) {
-        // List tables in schema
         String schema = args[1];
         result = introspectionService.listTables(metaData, schema);
       } else if (args.length == 3) {
-        // Describe table
         String schema = args[1];
         String table = args[2];
         result = introspectionService.describeTable(metaData, schema, table);
@@ -116,7 +116,9 @@ public class CliCommandHandler {
         return 1;
       }
 
+      System.out.println("DEBUG: result length = " + (result == null ? "null" : result.length()));
       System.out.println(result);
+      System.out.flush();
       return 0;
     } catch (Exception e) {
       System.err.println("Introspection failed: " + e.getMessage());

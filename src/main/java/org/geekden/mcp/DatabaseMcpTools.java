@@ -1,6 +1,5 @@
 package org.geekden.mcp;
 
-import io.agroal.api.AgroalDataSource;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,7 +22,7 @@ public class DatabaseMcpTools {
   private static final Logger LOG = Logger.getLogger(DatabaseMcpTools.class);
 
   @Inject
-  Instance<AgroalDataSource> dataSource;
+  Instance<Connection> connection;
 
   @Inject
   DatabaseConfig config;
@@ -50,7 +49,7 @@ public class DatabaseMcpTools {
         return "Error: Database not configured. Set DB_URL, DB_USERNAME, and DB_PASSWORD environment variables.";
       }
 
-      try (Connection conn = dataSource.get().getConnection()) {
+      try (Connection conn = connection.get()) {
         DatabaseMetaData metaData = conn.getMetaData();
 
         if (schema == null) {

@@ -1,6 +1,5 @@
 package org.geekden.mcp.config;
 
-import io.agroal.api.AgroalDataSource;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -21,7 +20,7 @@ public class DatabaseInfoLogger {
   private static final Logger LOG = Logger.getLogger(DatabaseInfoLogger.class);
 
   @Inject
-  Instance<AgroalDataSource> dataSource;
+  Instance<Connection> connection;
 
   @Inject
   DatabaseConfig config;
@@ -35,7 +34,7 @@ public class DatabaseInfoLogger {
     try {
       LOG.info("Database URL: " + maskPassword(config.getJdbcUrl().orElse("not set")));
 
-      try (Connection conn = dataSource.get().getConnection()) {
+      try (Connection conn = connection.get()) {
         DatabaseMetaData metaData = conn.getMetaData();
         String productName = metaData.getDatabaseProductName();
         String productVersion = metaData.getDatabaseProductVersion();
