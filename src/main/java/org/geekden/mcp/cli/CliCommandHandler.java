@@ -93,10 +93,6 @@ public class CliCommandHandler {
       return 1;
     }
 
-    // DEBUG: Test if stdout works at all
-    System.out.println("DEBUG: handleIntrospect called with " + args.length + " args");
-    System.out.flush();
-
     try (Connection conn = connection.get()) {
       DatabaseMetaData metaData = conn.getMetaData();
 
@@ -116,9 +112,7 @@ public class CliCommandHandler {
         return 1;
       }
 
-      System.out.println("DEBUG: result length = " + (result == null ? "null" : result.length()));
       System.out.println(result);
-      System.out.flush();
       return 0;
     } catch (Exception e) {
       System.err.println("Introspection failed: " + e.getMessage());
