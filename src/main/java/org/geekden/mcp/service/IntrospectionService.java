@@ -56,6 +56,15 @@ public class IntrospectionService {
       }
     }
 
+    // TODO: Design and implement database dialect abstraction
+    // Current approach uses conditional checks (code smell) which doesn't scale.
+    // Need a proper pattern like Strategy or DatabaseDialect interface:
+    //   - DatabaseDialect interface with methods: getDefaultSchemas(), formatType(), etc.
+    //   - SQLiteDialect, PostgreSQLDialect implementations
+    //   - Factory to detect and instantiate correct dialect
+    //   - Inject dialect into services that need database-specific behavior
+    // This will make adding new databases cleaner and more maintainable.
+
     // Special handling for SQLite: always has a "main" schema
     if (rows.isEmpty()) {
       String dbProductName = metaData.getDatabaseProductName();
