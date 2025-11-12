@@ -56,6 +56,14 @@ public class IntrospectionService {
       }
     }
 
+    // Special handling for SQLite: always has a "main" schema
+    if (rows.isEmpty()) {
+      String dbProductName = metaData.getDatabaseProductName();
+      if (dbProductName != null && dbProductName.toLowerCase().contains("sqlite")) {
+        rows.add(TableFormatter.row("main"));
+      }
+    }
+
     if (rows.isEmpty()) {
       return "No schemas found.";
     }
