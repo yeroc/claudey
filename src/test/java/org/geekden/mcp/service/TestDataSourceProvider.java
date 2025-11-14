@@ -67,17 +67,21 @@ public class TestDataSourceProvider {
     // For SQLite file-based databases, isolate per test class
     if (url.matches("jdbc:sqlite:.*\\.db")) {
       String testClassName = testDatabaseContext.getTestClass();
-      if (testClassName != null) {
-        // Replace filename with test-class-specific name (e.g., CliQueryTest.db)
-        url = url.replaceFirst("[^/]+\\.db$", testClassName + ".db");
-        LOG.debug("Using isolated test database for " + testClassName + ": " + url);
+      if (testClassName == null) {
+        throw new SQLException(
+            "Test class name not set in TestDatabaseContext. " +
+            "Database tests must extend AbstractDatabaseIntegrationTest."
+        );
       }
+      // Replace filename with test-class-specific name (e.g., CliQueryTest.db)
+      url = url.replaceFirst("[^/]+\\.db$", testClassName + ".db");
+      LOG.debug("Using isolated test database for " + testClassName + ": " + url);
     }
 
     LOG.debug("Connecting to test database: " + url);
 
     // Connect with or without credentials
-    if (username.isPresent() && !username.get().isEmpty()) {
+    if (username.isPresent()) {
       return DriverManager.getConnection(url, username.get(), password.orElse(""));
     } else {
       return DriverManager.getConnection(url);
