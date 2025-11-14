@@ -1,4 +1,4 @@
-package org.geekden.mcp.service;
+package org.geekden.mcp;
 
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -9,7 +9,6 @@ import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.geekden.mcp.TestDatabaseContext;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
