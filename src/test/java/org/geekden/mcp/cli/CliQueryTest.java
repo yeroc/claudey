@@ -114,7 +114,7 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
     assertThat("Should fail when query is missing", exitCode, is(1));
 
     String stderr = output.getStderr();
-    assertThat("Should show error message", stderr, containsString("Invalid arguments"));
+    assertThat("Should show missing query error", stderr, containsString("Missing SQL query"));
   }
 
   @Test
@@ -152,7 +152,7 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
     assertThat("Should fail with SQL error", exitCode, is(1));
 
     String stderr = output.getStderr();
-    assertThat("Should show error message", stderr, containsString("Error:"));
+    assertThat("Should show query execution error", stderr, containsString("Query execution failed"));
   }
 
   @Test
