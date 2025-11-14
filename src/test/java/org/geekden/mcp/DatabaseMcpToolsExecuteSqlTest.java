@@ -137,6 +137,9 @@ class DatabaseMcpToolsExecuteSqlTest {
 
   @Test
   void testExecuteDDL_createTable() {
+    // Clean up any leftover table from previous runs
+    mcpTools.executeSql("DROP TABLE IF EXISTS test_temp", 1);
+
     String result = mcpTools.executeSql(
         "CREATE TABLE test_temp (id INTEGER PRIMARY KEY, value TEXT)", 1);
 
