@@ -50,6 +50,15 @@ public class DataSourceProvider {
         new SQLException("No database URL configured (set DB_URL environment variable)")
     );
 
+    // TODO: Design and implement database dialect abstraction
+    // Current approach uses conditional checks (code smell) which doesn't scale.
+    // Need a proper pattern like Strategy or DatabaseDialect interface:
+    //   - DatabaseDialect interface with methods: getDriverClassName(), etc.
+    //   - SQLiteDialect, PostgreSQLDialect implementations
+    //   - Factory to detect and instantiate correct dialect
+    //   - Inject dialect into services that need database-specific behavior
+    // This will make adding new databases cleaner and more maintainable.
+
     // Explicitly load the appropriate JDBC driver based on URL
     // Uber-JARs break JDBC ServiceLoader, so we must load explicitly
     try {

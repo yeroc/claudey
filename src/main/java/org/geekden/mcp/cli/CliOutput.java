@@ -10,30 +10,18 @@ import java.nio.charset.StandardCharsets;
 /**
  * Output abstraction for CLI commands.
  * <p>
- * In production, writes directly to FileDescriptor.out/err to bypass
- * MCP stdio extension's capture of System.out/err.
- * <p>
- * In tests, can be replaced with a mock/spy for verification.
+ * Writes directly to FileDescriptor.out/err to bypass MCP stdio extension's
+ * capture of System.out/err for JSON-RPC protocol.
  */
 @ApplicationScoped
 public class CliOutput {
 
-  // Direct access to stdout/stderr, bypassing System.out/err which MCP stdio extension captures
   private final PrintStream stdout;
   private final PrintStream stderr;
 
   public CliOutput() {
-    // Use FileDescriptor directly to bypass MCP stdio redirection
     this.stdout = new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8);
     this.stderr = new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8);
-  }
-
-  /**
-   * Constructor for tests to inject standard System.out/err
-   */
-  CliOutput(PrintStream stdout, PrintStream stderr) {
-    this.stdout = stdout;
-    this.stderr = stderr;
   }
 
   public void println(String message) {
@@ -44,3 +32,4 @@ public class CliOutput {
     stderr.println(message);
   }
 }
+
