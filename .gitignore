@@ -1,1 +1,10 @@
 target/
+
+# Build artifacts
+META-INF/
+
+# Test output files
+*.log
+
+# Local test databases
+*.db
