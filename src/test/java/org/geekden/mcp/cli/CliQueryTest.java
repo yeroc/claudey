@@ -1,14 +1,11 @@
 package org.geekden.mcp.cli;
 
 import io.quarkus.test.junit.QuarkusTest;
-import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
+import org.geekden.mcp.DatabaseMcpTools;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.sql.Connection;
-import java.sql.Statement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -27,46 +24,30 @@ class CliQueryTest {
   CliCommandHandler cliHandler;
 
   @Inject
-  Instance<Connection> connection;
+  DatabaseMcpTools mcpTools;
 
   @BeforeEach
-  void setUp() throws Exception {
-    // Create test table with data
-    try (Connection conn = connection.get();
-         Statement stmt = conn.createStatement()) {
+  void setUp() {
+    // Create test table with data using MCP tools (ensures same connection context)
+    mcpTools.executeSql("DROP TABLE IF EXISTS cli_test_data", 1);
 
-      // Drop table if it exists (for test isolation)
-      try {
-        stmt.execute("DROP TABLE IF EXISTS cli_test_data");
-      } catch (Exception e) {
-        // Ignore if table doesn't exist
-      }
+    mcpTools.executeSql(
+        "CREATE TABLE cli_test_data (" +
+            "  id INTEGER PRIMARY KEY," +
+            "  value TEXT" +
+            ")", 1);
 
-      stmt.execute(
-          "CREATE TABLE cli_test_data (" +
-              "  id INTEGER PRIMARY KEY," +
-              "  value TEXT" +
-              ")"
-      );
-
-      // Insert test data
-      for (int i = 1; i <= 250; i++) {
-        stmt.execute(
-            String.format("INSERT INTO cli_test_data (id, value) VALUES (%d, 'Value %d')", i, i)
-        );
-      }
+    // Insert test data
+    for (int i = 1; i <= 250; i++) {
+      mcpTools.executeSql(
+          String.format("INSERT INTO cli_test_data (id, value) VALUES (%d, 'Value %d')", i, i), 1);
     }
   }
 
   @AfterEach
-  void tearDown() throws Exception {
+  void tearDown() {
     // Clean up test table
-    try (Connection conn = connection.get();
-         Statement stmt = conn.createStatement()) {
-      stmt.execute("DROP TABLE IF EXISTS cli_test_data");
-    } catch (Exception e) {
-      // Ignore cleanup errors
-    }
+    mcpTools.executeSql("DROP TABLE IF EXISTS cli_test_data", 1);
   }
 
   @Test
