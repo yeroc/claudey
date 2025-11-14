@@ -4,6 +4,7 @@ import org.geekden.mcp.AbstractDatabaseIntegrationTest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -12,14 +13,21 @@ import static org.hamcrest.Matchers.*;
 /**
  * Test CLI command handler syntax validation.
  * <p>
- * Note: Output verification is not possible with MCP stdio extension active.
- * These tests verify exit codes and basic command validation logic.
+ * Uses CapturingOutput to verify both exit codes and error messages.
  */
 @QuarkusTest
 class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   CliCommandHandler cliHandler;
+
+  @Inject
+  CapturingOutput output;
+
+  @BeforeEach
+  void setUp() {
+    output.reset();
+  }
 
   @Test
   void testCliHandlerInjection() {
@@ -31,6 +39,9 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
   void testInvalidCommandFails() {
     int exitCode = cliHandler.execute(new String[]{"invalid"});
     assertThat("Should return exit code 1 for invalid command", exitCode, is(1));
+
+    String stderr = output.getStderr();
+    assertThat("Should show unknown command error", stderr, containsString("Unknown command"));
   }
 
   @Test

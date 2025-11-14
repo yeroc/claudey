@@ -15,9 +15,7 @@ import static org.hamcrest.Matchers.*;
 /**
  * Integration tests for CLI query commands.
  * <p>
- * Note: Output verification is not possible with MCP stdio extension active.
- * These tests verify exit codes and basic execution flow.
- * Output formatting is verified manually via uber-JAR testing.
+ * Uses CapturingOutput to verify both exit codes and actual output content.
  */
 @QuarkusTest
 class CliQueryTest extends AbstractDatabaseIntegrationTest {
@@ -28,8 +26,14 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
   @Inject
   DatabaseMcpTools mcpTools;
 
+  @Inject
+  CapturingOutput output;
+
   @BeforeEach
   void setUp() {
+    // Reset output capture
+    output.reset();
+
     // Create test table with data using MCP tools (ensures same connection context)
     mcpTools.executeSql("DROP TABLE IF EXISTS cli_test_data", 1);
 
@@ -56,6 +60,10 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
   void testCliQuerySelectSucceeds() {
     int exitCode = cliHandler.execute(new String[]{"query", "SELECT * FROM cli_test_data WHERE id <= 10"});
     assertThat("Should succeed with exit code 0", exitCode, is(0));
+
+    String stdout = output.getStdout();
+    assertThat("Should contain column headers", stdout, containsString("id"));
+    assertThat("Should contain data", stdout, containsString("Value 1"));
   }
 
   @Test
@@ -63,6 +71,10 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
     int exitCode = cliHandler.execute(
         new String[]{"query", "SELECT * FROM cli_test_data ORDER BY id", "--page", "2"});
     assertThat("Should succeed with pagination", exitCode, is(0));
+
+    String stdout = output.getStdout();
+    assertThat("Should contain data from page 2", stdout, containsString("Value 101"));
+    assertThat("Should show pagination footer", stdout, containsString("Page 2"));
   }
 
   @Test
@@ -100,6 +112,9 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
   void testCliQueryMissingQueryFails() {
     int exitCode = cliHandler.execute(new String[]{"query"});
     assertThat("Should fail when query is missing", exitCode, is(1));
+
+    String stderr = output.getStderr();
+    assertThat("Should show error message", stderr, containsString("Invalid arguments"));
   }
 
   @Test
@@ -135,6 +150,9 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
     int exitCode = cliHandler.execute(
         new String[]{"query", "SELECT * FROM nonexistent_table"});
     assertThat("Should fail with SQL error", exitCode, is(1));
+
+    String stderr = output.getStderr();
+    assertThat("Should show error message", stderr, containsString("Error:"));
   }
 
   @Test
