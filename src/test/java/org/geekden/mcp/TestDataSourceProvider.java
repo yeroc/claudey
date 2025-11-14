@@ -5,7 +5,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.enterprise.inject.Produces;
-import jakarta.enterprise.inject.spi.InjectionPoint;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -52,13 +51,12 @@ public class TestDataSourceProvider {
    * from the test class name registered in TestDatabaseContext. This enables
    * parallel test execution with proper database isolation.
    *
-   * @param injectionPoint The CDI injection point (unused, kept for compatibility)
    * @return A database connection
    * @throws SQLException if connection cannot be established
    */
   @Produces
   @Dependent
-  public Connection produceConnection(InjectionPoint injectionPoint) throws SQLException {
+  public Connection produceConnection() throws SQLException {
     String url = configuredUrl.orElseThrow(() ->
         new SQLException("No database URL configured (set DB_URL environment variable)")
     );
