@@ -43,8 +43,8 @@ public class TestDataSourceProvider {
   /**
    * Produces database connections with test-class-specific isolation.
    * <p>
-   * For file-based test databases, automatically derives unique filenames
-   * from the test class name to ensure test isolation.
+   * For SQLite file-based databases, automatically derives unique filenames
+   * from the injection point's declaring class to ensure test isolation.
    *
    * @param injectionPoint The CDI injection point
    * @return A database connection
@@ -57,14 +57,12 @@ public class TestDataSourceProvider {
         new SQLException("No database URL configured (set DB_URL environment variable)")
     );
 
-    // For file-based test databases, create isolated database files per test class
-    if (url.contains("target/test-database.db") && injectionPoint != null) {
-      String testClassName = getTestClassName(injectionPoint);
-      if (testClassName != null) {
-        // Replace generic test-database.db with test-class-specific filename
-        url = url.replace("test-database.db", testClassName + ".db");
-        LOG.debug("Using isolated test database for " + testClassName + ": " + url);
-      }
+    // For SQLite file-based databases, isolate per declaring class
+    if (url.matches("jdbc:sqlite:.*\\.db")) {
+      String className = injectionPoint.getMember().getDeclaringClass().getSimpleName();
+      // Replace filename with class-specific name (e.g., SqlExecutionServiceTest.db)
+      url = url.replaceFirst("[^/]+\\.db$", className + ".db");
+      LOG.debug("Using isolated test database for " + className + ": " + url);
     }
 
     LOG.debug("Connecting to test database: " + url);
@@ -75,27 +73,5 @@ public class TestDataSourceProvider {
     } else {
       return DriverManager.getConnection(url);
     }
-  }
-
-  /**
-   * Extract the test class name from the injection point.
-   *
-   * @param injectionPoint The CDI injection point
-   * @return Simple class name if it's a test class, null otherwise
-   */
-  private String getTestClassName(InjectionPoint injectionPoint) {
-    try {
-      Class<?> declaringClass = injectionPoint.getMember().getDeclaringClass();
-      String className = declaringClass.getSimpleName();
-
-      // Only use class-specific databases for test classes
-      if (className.endsWith("Test")) {
-        return className;
-      }
-    } catch (Exception e) {
-      LOG.debug("Could not determine test class name from injection point", e);
-    }
-
-    return null;
   }
 }
