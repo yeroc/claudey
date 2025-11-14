@@ -1,11 +1,13 @@
 package org.geekden.mcp.formatter;
 
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -13,21 +15,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Tests for ResultSetFormatter.
- * Uses SQLite file-based database to create real ResultSets.
+ * Integration tests for ResultSetFormatter.
+ * Uses Quarkus-managed database connection to create real ResultSets.
  */
+@QuarkusTest
 class ResultSetFormatterTest {
 
-  private Connection testConnection;
+  @Inject
+  Instance<Connection> connection;
 
   @BeforeEach
   void setUp() throws Exception {
-    // Create file-based SQLite database for testing
-    // Using file-based instead of :memory: ensures driver compatibility
-    testConnection = DriverManager.getConnection("jdbc:sqlite:target/resultset-formatter-test.db");
+    // Create test table with data using injected connection
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
 
-    // Create test table with data
-    try (Statement stmt = testConnection.createStatement()) {
       // Drop table if it exists from previous test runs
       stmt.execute("DROP TABLE IF EXISTS users");
 
@@ -47,14 +49,16 @@ class ResultSetFormatterTest {
 
   @AfterEach
   void tearDown() throws Exception {
-    if (testConnection != null && !testConnection.isClosed()) {
-      testConnection.close();
+    // Clean up test table
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS users");
     }
   }
 
   @Test
   void testFormatSimpleResultSet() throws Exception {
-    try (Statement stmt = testConnection.createStatement();
+    try (Statement stmt = connection.get().createStatement();
          ResultSet rs = stmt.executeQuery("SELECT id, name FROM users ORDER BY id")) {
 
       String result = ResultSetFormatter.format(rs);
@@ -78,7 +82,7 @@ class ResultSetFormatterTest {
 
   @Test
   void testFormatResultSetWithNulls() throws Exception {
-    try (Statement stmt = testConnection.createStatement();
+    try (Statement stmt = connection.get().createStatement();
          ResultSet rs = stmt.executeQuery("SELECT name, email FROM users WHERE id = 3")) {
 
       String result = ResultSetFormatter.format(rs);
@@ -93,7 +97,7 @@ class ResultSetFormatterTest {
 
   @Test
   void testFormatEmptyResultSet() throws Exception {
-    try (Statement stmt = testConnection.createStatement();
+    try (Statement stmt = connection.get().createStatement();
          ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE id > 1000")) {
 
       String result = ResultSetFormatter.format(rs);
@@ -105,7 +109,7 @@ class ResultSetFormatterTest {
 
   @Test
   void testFormatWithPaginationFooter_moreAvailable() throws Exception {
-    try (Statement stmt = testConnection.createStatement();
+    try (Statement stmt = connection.get().createStatement();
          ResultSet rs = stmt.executeQuery("SELECT id, name FROM users ORDER BY id LIMIT 3")) {
 
       // Simulate pagination: display 2 rows, but 3 were fetched (hasMore = true)
@@ -127,7 +131,7 @@ class ResultSetFormatterTest {
 
   @Test
   void testFormatWithPaginationFooter_noMoreData() throws Exception {
-    try (Statement stmt = testConnection.createStatement();
+    try (Statement stmt = connection.get().createStatement();
          ResultSet rs = stmt.executeQuery("SELECT id, name FROM users ORDER BY id LIMIT 2")) {
 
       // Display all 2 rows (no more data)
@@ -177,7 +181,7 @@ class ResultSetFormatterTest {
 
   @Test
   void testFormatAllColumns() throws Exception {
-    try (Statement stmt = testConnection.createStatement();
+    try (Statement stmt = connection.get().createStatement();
          ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE id = 1")) {
 
       String result = ResultSetFormatter.format(rs);
