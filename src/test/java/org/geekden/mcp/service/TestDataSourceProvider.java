@@ -44,7 +44,8 @@ public class TestDataSourceProvider {
    * Produces database connections with test-class-specific isolation.
    * <p>
    * For SQLite file-based databases, automatically derives unique filenames
-   * from the injection point's declaring class to ensure test isolation.
+   * from the test class name to ensure test isolation. Walks up the stack
+   * to find the actual test class (ending in "Test").
    *
    * @param injectionPoint The CDI injection point
    * @return A database connection
@@ -57,12 +58,14 @@ public class TestDataSourceProvider {
         new SQLException("No database URL configured (set DB_URL environment variable)")
     );
 
-    // For SQLite file-based databases, isolate per declaring class
+    // For SQLite file-based databases, isolate per test class
     if (url.matches("jdbc:sqlite:.*\\.db")) {
-      String className = injectionPoint.getMember().getDeclaringClass().getSimpleName();
-      // Replace filename with class-specific name (e.g., SqlExecutionServiceTest.db)
-      url = url.replaceFirst("[^/]+\\.db$", className + ".db");
-      LOG.debug("Using isolated test database for " + className + ": " + url);
+      String testClassName = findTestClassName();
+      if (testClassName != null) {
+        // Replace filename with test-class-specific name (e.g., CliQueryTest.db)
+        url = url.replaceFirst("[^/]+\\.db$", testClassName + ".db");
+        LOG.debug("Using isolated test database for " + testClassName + ": " + url);
+      }
     }
 
     LOG.debug("Connecting to test database: " + url);
@@ -73,5 +76,24 @@ public class TestDataSourceProvider {
     } else {
       return DriverManager.getConnection(url);
     }
+  }
+
+  /**
+   * Find the test class name by walking up the stack trace.
+   * Looks for the first class ending in "Test" in the call stack.
+   *
+   * @return Test class simple name, or null if not found
+   */
+  private String findTestClassName() {
+    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+    for (StackTraceElement element : stackTrace) {
+      String className = element.getClassName();
+      if (className.endsWith("Test")) {
+        // Extract simple name from fully qualified name
+        int lastDot = className.lastIndexOf('.');
+        return lastDot >= 0 ? className.substring(lastDot + 1) : className;
+      }
+    }
+    return null;
   }
 }
