@@ -28,11 +28,16 @@ class IntrospectionServiceTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    // Create in-memory SQLite database for testing
-    testConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
+    // Create file-based SQLite database for testing
+    testConnection = DriverManager.getConnection("jdbc:sqlite:target/introspection-service-test.db");
 
     // Create test schema with tables
     try (Statement stmt = testConnection.createStatement()) {
+      // Drop tables if they exist from previous test runs
+      stmt.execute("DROP VIEW IF EXISTS user_orders");
+      stmt.execute("DROP TABLE IF EXISTS orders");
+      stmt.execute("DROP TABLE IF EXISTS users");
+
       // Create users table with primary key
       stmt.execute(
           "CREATE TABLE users (" +

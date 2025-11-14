@@ -28,11 +28,14 @@ class SqlExecutionServiceTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    // Create in-memory SQLite database for testing
-    testConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
+    // Create file-based SQLite database for testing
+    testConnection = DriverManager.getConnection("jdbc:sqlite:target/sql-execution-service-test.db");
 
     // Create test table with data
     try (Statement stmt = testConnection.createStatement()) {
+      // Drop table if it exists from previous test runs
+      stmt.execute("DROP TABLE IF EXISTS products");
+
       stmt.execute(
           "CREATE TABLE products (" +
               "  id INTEGER PRIMARY KEY," +

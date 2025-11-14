@@ -14,7 +14,7 @@ import static org.hamcrest.Matchers.*;
 
 /**
  * Tests for ResultSetFormatter.
- * Uses SQLite in-memory database to create real ResultSets.
+ * Uses SQLite file-based database to create real ResultSets.
  */
 class ResultSetFormatterTest {
 
@@ -22,11 +22,15 @@ class ResultSetFormatterTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    // Create in-memory SQLite database for testing
-    testConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
+    // Create file-based SQLite database for testing
+    // Using file-based instead of :memory: ensures driver compatibility
+    testConnection = DriverManager.getConnection("jdbc:sqlite:target/resultset-formatter-test.db");
 
     // Create test table with data
     try (Statement stmt = testConnection.createStatement()) {
+      // Drop table if it exists from previous test runs
+      stmt.execute("DROP TABLE IF EXISTS users");
+
       stmt.execute(
           "CREATE TABLE users (" +
               "  id INTEGER PRIMARY KEY," +
