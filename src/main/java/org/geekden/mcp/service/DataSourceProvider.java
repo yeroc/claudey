@@ -25,6 +25,16 @@ public class DataSourceProvider {
 
   private static final Logger LOG = Logger.getLogger(DataSourceProvider.class);
 
+  static {
+    // Eagerly initialize DriverManager to trigger JDBC 4.0 ServiceLoader
+    // This ensures drivers are loaded before first connection attempt
+    try {
+      DriverManager.getDrivers();
+    } catch (Exception e) {
+      LOG.warn("Failed to initialize JDBC drivers", e);
+    }
+  }
+
   @ConfigProperty(name = "quarkus.datasource.jdbc.url")
   Optional<String> configuredUrl;
 
@@ -37,8 +47,9 @@ public class DataSourceProvider {
   /**
    * CDI producer method for database connections via JDBC DriverManager.
    * <p>
-   * Explicitly loads the appropriate JDBC driver based on URL prefix.
-   * Uber-JARs break JDBC ServiceLoader, so we must load drivers explicitly.
+   * Relies on JDBC 4.0 automatic driver loading via ServiceLoader.
+   * Quarkus uber-JAR properly merges META-INF/services/java.sql.Driver files
+   * from all JDBC driver JARs, enabling automatic driver registration.
    *
    * @return A database connection
    * @throws SQLException if connection cannot be established
@@ -49,27 +60,6 @@ public class DataSourceProvider {
     String url = configuredUrl.orElseThrow(() ->
         new SQLException("No database URL configured (set DB_URL environment variable)")
     );
-
-    // TODO: Design and implement database dialect abstraction
-    // Current approach uses conditional checks (code smell) which doesn't scale.
-    // Need a proper pattern like Strategy or DatabaseDialect interface:
-    //   - DatabaseDialect interface with methods: getDriverClassName(), etc.
-    //   - SQLiteDialect, PostgreSQLDialect implementations
-    //   - Factory to detect and instantiate correct dialect
-    //   - Inject dialect into services that need database-specific behavior
-    // This will make adding new databases cleaner and more maintainable.
-
-    // Explicitly load the appropriate JDBC driver based on URL
-    // Uber-JARs break JDBC ServiceLoader, so we must load explicitly
-    try {
-      if (url.startsWith("jdbc:sqlite:")) {
-        Class.forName("org.sqlite.JDBC");
-      } else if (url.startsWith("jdbc:postgresql:")) {
-        Class.forName("org.postgresql.Driver");
-      }
-    } catch (ClassNotFoundException e) {
-      throw new SQLException("JDBC driver not found for URL: " + url, e);
-    }
 
     LOG.debug("Connecting to database: " + url);
 
