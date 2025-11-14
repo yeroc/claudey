@@ -194,6 +194,11 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testExecuteDDL_createTable() throws Exception {
+    // Clean up table if it exists from previous test run
+    try (Statement stmt = connection.get().createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS test_table");
+    }
+
     String query = "CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)";
     String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
 
@@ -205,6 +210,11 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
     String selectResult = sqlExecutionService.executeQuery(connection.get(), selectQuery, 1, 100);
     assertThat("Should find created table",
         selectResult, containsString("test_table"));
+
+    // Clean up
+    try (Statement stmt = connection.get().createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS test_table");
+    }
   }
 
   @Test
