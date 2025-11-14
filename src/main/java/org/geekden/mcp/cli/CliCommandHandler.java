@@ -5,6 +5,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
 import org.geekden.mcp.service.IntrospectionService;
+import org.geekden.mcp.service.SqlExecutionService;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
@@ -35,6 +36,9 @@ public class CliCommandHandler {
 
   @Inject
   IntrospectionService introspectionService;
+
+  @Inject
+  SqlExecutionService sqlExecutionService;
 
   @Inject
   CliOutput output;
@@ -153,10 +157,21 @@ public class CliCommandHandler {
       }
     }
 
-    output.println("Executing query (page " + page + "): " + query);
-    output.println("(Implementation pending - Phase 4)");
+    // Validate page number
+    if (page < 1) {
+      output.printError("Page number must be >= 1");
+      return 1;
+    }
 
-    return 0;
+    try (Connection conn = connection.get()) {
+      String result = sqlExecutionService.executeQuery(conn, query, page, config.getPageSize());
+      output.println(result);
+      return 0;
+    } catch (Exception e) {
+      output.printError("Query execution failed: " + e.getMessage());
+      LOG.error("Query execution error", e);
+      return 1;
+    }
   }
 
   private void printUsage() {
