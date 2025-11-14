@@ -47,11 +47,6 @@ public class MainApplication implements QuarkusApplication {
       // Remove --cli from args and pass the rest to CLI handler
       String[] cliArgs = Arrays.copyOfRange(args, 1, args.length);
       int exitCode = cliHandler.execute(cliArgs);
-
-      // Force flush before return
-      System.out.flush();
-      System.err.flush();
-
       LOG.info("CLI execution complete with exit code: " + exitCode);
       return exitCode;
     }
