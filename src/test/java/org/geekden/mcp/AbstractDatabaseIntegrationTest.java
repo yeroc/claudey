@@ -44,9 +44,7 @@ public abstract class AbstractDatabaseIntegrationTest {
    */
   @BeforeEach
   void setUpDatabaseContext(TestInfo testInfo) {
-    String className = testInfo.getTestClass()
-        .map(Class::getSimpleName)
-        .orElse("UnknownTest");
+    String className = testInfo.getTestClass().get().getSimpleName();
     testDatabaseContext.setTestClass(className);
   }
 
