@@ -1,5 +1,7 @@
 package org.geekden.mcp.cli;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -14,7 +16,7 @@ import static org.hamcrest.Matchers.*;
  * These tests verify exit codes and basic command validation logic.
  */
 @QuarkusTest
-class CliCommandHandlerTest {
+class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   CliCommandHandler cliHandler;

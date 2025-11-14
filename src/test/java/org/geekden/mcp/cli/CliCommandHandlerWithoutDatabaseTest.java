@@ -1,5 +1,7 @@
 package org.geekden.mcp.cli;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -19,7 +21,7 @@ import static org.hamcrest.Matchers.*;
  */
 @QuarkusTest
 @TestProfile(CliCommandHandlerWithoutDatabaseTest.NoDatabaseProfile.class)
-class CliCommandHandlerWithoutDatabaseTest {
+class CliCommandHandlerWithoutDatabaseTest extends AbstractDatabaseIntegrationTest {
 
   /**
    * Test profile that clears database configuration.

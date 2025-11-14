@@ -1,5 +1,7 @@
 package org.geekden.mcp.formatter;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -19,7 +21,7 @@ import static org.hamcrest.Matchers.*;
  * Uses Quarkus-managed database connection to create real ResultSets.
  */
 @QuarkusTest
-class ResultSetFormatterTest {
+class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   Instance<Connection> connection;

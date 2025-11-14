@@ -6,8 +6,10 @@ import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Alternative;
 import jakarta.enterprise.inject.Produces;
 import jakarta.enterprise.inject.spi.InjectionPoint;
+import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.geekden.mcp.TestDatabaseContext;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
@@ -21,8 +23,9 @@ import java.util.Optional;
  * This alternative producer is active only during tests and provides
  * isolated database files per test class for proper test isolation.
  * <p>
- * Uses InjectionPoint introspection to derive test class names and
- * generate unique database filenames (e.g., "SqlExecutionServiceTest.db").
+ * Uses TestDatabaseContext to determine the current test class name,
+ * which is set by AbstractDatabaseIntegrationTest. This enables parallel
+ * test execution with isolated databases (e.g., "CliQueryTest.db").
  */
 @Alternative
 @Priority(Interceptor.Priority.APPLICATION + 100)
@@ -30,6 +33,9 @@ import java.util.Optional;
 public class TestDataSourceProvider {
 
   private static final Logger LOG = Logger.getLogger(TestDataSourceProvider.class);
+
+  @Inject
+  TestDatabaseContext testDatabaseContext;
 
   @ConfigProperty(name = "quarkus.datasource.jdbc.url")
   Optional<String> configuredUrl;
@@ -44,10 +50,10 @@ public class TestDataSourceProvider {
    * Produces database connections with test-class-specific isolation.
    * <p>
    * For SQLite file-based databases, automatically derives unique filenames
-   * from the test class name to ensure test isolation. Walks up the stack
-   * to find the actual test class (ending in "Test").
+   * from the test class name registered in TestDatabaseContext. This enables
+   * parallel test execution with proper database isolation.
    *
-   * @param injectionPoint The CDI injection point
+   * @param injectionPoint The CDI injection point (unused, kept for compatibility)
    * @return A database connection
    * @throws SQLException if connection cannot be established
    */
@@ -60,7 +66,7 @@ public class TestDataSourceProvider {
 
     // For SQLite file-based databases, isolate per test class
     if (url.matches("jdbc:sqlite:.*\\.db")) {
-      String testClassName = findTestClassName();
+      String testClassName = testDatabaseContext.getTestClass();
       if (testClassName != null) {
         // Replace filename with test-class-specific name (e.g., CliQueryTest.db)
         url = url.replaceFirst("[^/]+\\.db$", testClassName + ".db");
@@ -76,24 +82,5 @@ public class TestDataSourceProvider {
     } else {
       return DriverManager.getConnection(url);
     }
-  }
-
-  /**
-   * Find the test class name by walking up the stack trace.
-   * Looks for the first class ending in "Test" in the call stack.
-   *
-   * @return Test class simple name, or null if not found
-   */
-  private String findTestClassName() {
-    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-    for (StackTraceElement element : stackTrace) {
-      String className = element.getClassName();
-      if (className.endsWith("Test")) {
-        // Extract simple name from fully qualified name
-        int lastDot = className.lastIndexOf('.');
-        return lastDot >= 0 ? className.substring(lastDot + 1) : className;
-      }
-    }
-    return null;
   }
 }

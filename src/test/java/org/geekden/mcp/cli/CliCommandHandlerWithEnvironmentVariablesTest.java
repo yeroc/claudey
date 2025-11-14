@@ -1,5 +1,7 @@
 package org.geekden.mcp.cli;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
@@ -16,7 +18,7 @@ import static org.hamcrest.Matchers.*;
  * These tests verify exit codes with environment-based configuration.
  */
 @QuarkusTest
-class CliCommandHandlerWithEnvironmentVariablesTest {
+class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   CliCommandHandler cliHandler;

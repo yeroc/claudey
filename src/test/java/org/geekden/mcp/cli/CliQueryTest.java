@@ -1,5 +1,7 @@
 package org.geekden.mcp.cli;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.geekden.mcp.DatabaseMcpTools;
@@ -18,7 +20,7 @@ import static org.hamcrest.Matchers.*;
  * Output formatting is verified manually via uber-JAR testing.
  */
 @QuarkusTest
-class CliQueryTest {
+class CliQueryTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   CliCommandHandler cliHandler;

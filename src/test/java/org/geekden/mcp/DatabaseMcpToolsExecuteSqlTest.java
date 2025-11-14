@@ -1,5 +1,7 @@
 package org.geekden.mcp;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -14,7 +16,7 @@ import static org.hamcrest.Matchers.*;
  * Tests the executeSql MCP tool with actual database connection.
  */
 @QuarkusTest
-class DatabaseMcpToolsExecuteSqlTest {
+class DatabaseMcpToolsExecuteSqlTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   DatabaseMcpTools mcpTools;
