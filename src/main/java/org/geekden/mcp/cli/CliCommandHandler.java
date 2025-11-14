@@ -41,7 +41,7 @@ public class CliCommandHandler {
   SqlExecutionService sqlExecutionService;
 
   @Inject
-  CliOutput output;
+  OutputWriter output;
 
   /**
    * Execute CLI command and return exit code.
@@ -61,15 +61,15 @@ public class CliCommandHandler {
 
       // Check command is recognized
       if (!isValidCommand(command)) {
-        output.printError("Unknown command: " + command);
+        output.printErr("Unknown command: " + command);
         printUsage();
         return 1;
       }
 
       // Check database configuration
       if (!config.isConfigured()) {
-        output.printError("Error: Database not configured.");
-        output.printError("Set DB_URL, DB_USERNAME, and DB_PASSWORD environment variables.");
+        output.printErr("Error: Database not configured.");
+        output.printErr("Set DB_URL, DB_USERNAME, and DB_PASSWORD environment variables.");
         return 1;
       }
 
@@ -84,7 +84,7 @@ public class CliCommandHandler {
           return 1;
       }
     } catch (Exception e) {
-      output.printError("Error: " + e.getMessage());
+      output.printErr("Error: " + e.getMessage());
       LOG.error("CLI command failed", e);
       return 1;
     }
@@ -97,7 +97,7 @@ public class CliCommandHandler {
   private int handleIntrospect(String[] args) {
     // Validate arguments
     if (args.length > 3) {
-      output.printError("Invalid arguments for introspect command");
+      output.printErr("Invalid arguments for introspect command");
       printUsage();
       return 1;
     }
@@ -116,15 +116,15 @@ public class CliCommandHandler {
         String table = args[2];
         result = introspectionService.describeTable(metaData, schema, table);
       } else {
-        output.printError("Invalid arguments for introspect command");
+        output.printErr("Invalid arguments for introspect command");
         printUsage();
         return 1;
       }
 
-      output.println(result);
+      output.printOut(result);
       return 0;
     } catch (Exception e) {
-      output.printError("Introspection failed: " + e.getMessage());
+      output.printErr("Introspection failed: " + e.getMessage());
       LOG.error("Introspection error", e);
       return 1;
     }
@@ -132,7 +132,7 @@ public class CliCommandHandler {
 
   private int handleQuery(String[] args) {
     if (args.length < 2) {
-      output.printError("Missing SQL query");
+      output.printErr("Missing SQL query");
       printUsage();
       return 1;
     }
@@ -144,13 +144,13 @@ public class CliCommandHandler {
     for (int i = 2; i < args.length; i++) {
       if ("--page".equals(args[i])) {
         if (i + 1 >= args.length) {
-          output.printError("Missing value for --page");
+          output.printErr("Missing value for --page");
           return 1;
         }
         try {
           page = Integer.parseInt(args[i + 1]);
         } catch (NumberFormatException e) {
-          output.printError("Invalid page number: " + args[i + 1]);
+          output.printErr("Invalid page number: " + args[i + 1]);
           return 1;
         }
         break;
@@ -159,27 +159,27 @@ public class CliCommandHandler {
 
     // Validate page number
     if (page < 1) {
-      output.printError("Page number must be >= 1");
+      output.printErr("Page number must be >= 1");
       return 1;
     }
 
     try (Connection conn = connection.get()) {
       String result = sqlExecutionService.executeQuery(conn, query, page, config.getPageSize());
-      output.println(result);
+      output.printOut(result);
       return 0;
     } catch (Exception e) {
-      output.printError("Query execution failed: " + e.getMessage());
+      output.printErr("Query execution failed: " + e.getMessage());
       LOG.error("Query execution error", e);
       return 1;
     }
   }
 
   private void printUsage() {
-    output.printError("Usage:");
-    output.printError("  --cli introspect                    # List all schemas/tables");
-    output.printError("  --cli introspect <schema>           # List tables in schema");
-    output.printError("  --cli introspect <schema> <table>   # Show table structure");
-    output.printError("  --cli query \"<sql>\"                 # Execute SQL query (page 1)");
-    output.printError("  --cli query \"<sql>\" --page <n>      # Execute SQL query with pagination");
+    output.printErr("Usage:");
+    output.printErr("  --cli introspect                    # List all schemas/tables");
+    output.printErr("  --cli introspect <schema>           # List tables in schema");
+    output.printErr("  --cli introspect <schema> <table>   # Show table structure");
+    output.printErr("  --cli query \"<sql>\"                 # Execute SQL query (page 1)");
+    output.printErr("  --cli query \"<sql>\" --page <n>      # Execute SQL query with pagination");
   }
 }
