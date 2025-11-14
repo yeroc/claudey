@@ -72,12 +72,15 @@ public class SqlExecutionService {
       } else {
         // INSERT/UPDATE/DELETE/DDL - return affected row count or success message
         int updateCount = stmt.getUpdateCount();
-        if (updateCount >= 0) {
+
+        // Check if this is a DDL statement (CREATE, DROP, ALTER, etc.)
+        // DDL statements return updateCount = 0, same as DML with 0 rows affected
+        // We distinguish them by checking the SQL statement type
+        if (isDdlStatement(query)) {
+          return "Command executed successfully.";
+        } else {
           // DML operation (INSERT/UPDATE/DELETE)
           return ResultSetFormatter.formatRowCount(updateCount);
-        } else {
-          // DDL operation (CREATE, DROP, ALTER, etc.)
-          return "Command executed successfully.";
         }
       }
     }
@@ -93,5 +96,27 @@ public class SqlExecutionService {
    */
   public String executeQuery(Connection connection, String query, int pageSize) throws SQLException {
     return executeQuery(connection, query, 1, pageSize);
+  }
+
+  /**
+   * Check if a SQL statement is a DDL (Data Definition Language) statement.
+   * DDL statements modify database structure rather than data.
+   *
+   * @param query SQL query to check
+   * @return true if the query is a DDL statement
+   */
+  private boolean isDdlStatement(String query) {
+    if (query == null) {
+      return false;
+    }
+
+    String trimmed = query.trim().toUpperCase();
+
+    // Common DDL keywords
+    return trimmed.startsWith("CREATE ")
+        || trimmed.startsWith("DROP ")
+        || trimmed.startsWith("ALTER ")
+        || trimmed.startsWith("TRUNCATE ")
+        || trimmed.startsWith("RENAME ");
   }
 }
