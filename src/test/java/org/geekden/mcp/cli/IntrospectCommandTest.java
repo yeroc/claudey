@@ -30,7 +30,7 @@ import picocli.CommandLine;
  * Uses CapturingOutput to verify both exit codes and actual output content.
  */
 @QuarkusTest
-class CliIntrospectionTest extends AbstractDatabaseIntegrationTest {
+class IntrospectCommandTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   MainApplication app;

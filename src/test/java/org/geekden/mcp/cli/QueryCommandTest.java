@@ -36,7 +36,7 @@ import picocli.CommandLine;
  * Uses CapturingOutput to verify both exit codes and actual output content.
  */
 @QuarkusTest
-class CliQueryTest extends AbstractDatabaseIntegrationTest {
+class QueryCommandTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   MainApplication app;
