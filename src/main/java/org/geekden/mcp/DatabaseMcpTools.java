@@ -7,6 +7,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
 import org.geekden.mcp.service.IntrospectionService;
+import org.geekden.mcp.service.SqlExecutionService;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
@@ -29,6 +30,9 @@ public class DatabaseMcpTools {
 
   @Inject
   IntrospectionService introspectionService;
+
+  @Inject
+  SqlExecutionService sqlExecutionService;
 
   /**
    * Hierarchical schema introspection tool.
@@ -91,8 +95,9 @@ public class DatabaseMcpTools {
         return "Error: Page number must be >= 1";
       }
 
-      // TODO: Implement in Phase 4
-      return "SQL execution not yet implemented. Query: " + query + ", Page: " + page;
+      try (Connection conn = connection.get()) {
+        return sqlExecutionService.executeQuery(conn, query, page, config.getPageSize());
+      }
 
     } catch (Exception e) {
       LOG.error("Error executing SQL", e);

@@ -1,6 +1,9 @@
 package org.geekden.mcp.service;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,31 +11,35 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.Statement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Tests for IntrospectionService.
- * Uses SQLite in-memory database for testing.
+ * Integration tests for IntrospectionService.
+ * Uses Quarkus-managed database connection.
  */
 @QuarkusTest
-class IntrospectionServiceTest {
+class IntrospectionServiceTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   IntrospectionService introspectionService;
 
-  private Connection testConnection;
+  @Inject
+  Instance<Connection> connection;
 
   @BeforeEach
   void setUp() throws Exception {
-    // Create in-memory SQLite database for testing
-    testConnection = DriverManager.getConnection("jdbc:sqlite::memory:");
+    // Create test schema with tables using injected connection
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
 
-    // Create test schema with tables
-    try (Statement stmt = testConnection.createStatement()) {
+      // Drop tables if they exist from previous test runs
+      stmt.execute("DROP VIEW IF EXISTS user_orders");
+      stmt.execute("DROP TABLE IF EXISTS orders");
+      stmt.execute("DROP TABLE IF EXISTS users");
+
       // Create users table with primary key
       stmt.execute(
           "CREATE TABLE users (" +
@@ -63,14 +70,18 @@ class IntrospectionServiceTest {
 
   @AfterEach
   void tearDown() throws Exception {
-    if (testConnection != null && !testConnection.isClosed()) {
-      testConnection.close();
+    // Clean up test tables
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
+      stmt.execute("DROP VIEW IF EXISTS user_orders");
+      stmt.execute("DROP TABLE IF EXISTS orders");
+      stmt.execute("DROP TABLE IF EXISTS users");
     }
   }
 
   @Test
   void testListSchemas() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
     String result = introspectionService.listSchemas(metaData);
 
     // SQLite in-memory may not return any schemas/catalogs
@@ -85,7 +96,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testListTables() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     // SQLite uses null schema for default tables
     String result = introspectionService.listTables(metaData, null);
@@ -101,7 +112,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testListTablesWithEmptySchema() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     // Test with a schema that doesn't exist
     // Note: SQLite ignores schema parameter and returns all tables,
@@ -114,7 +125,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testDescribeTable() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     // Describe users table
     String result = introspectionService.describeTable(metaData, null, "users");
@@ -144,7 +155,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testDescribeTableWithForeignKey() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     // Describe orders table which has a foreign key
     String result = introspectionService.describeTable(metaData, null, "orders");
@@ -166,7 +177,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testDescribeNonExistentTable() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     String result = introspectionService.describeTable(metaData, null, "nonexistent_table");
 
@@ -175,7 +186,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testDescribeTableWithNullableColumns() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     // The 'email' column in 'users' table is nullable
     String result = introspectionService.describeTable(metaData, null, "users");
@@ -189,7 +200,7 @@ class IntrospectionServiceTest {
 
   @Test
   void testTableFormattingConsistency() throws Exception {
-    DatabaseMetaData metaData = testConnection.getMetaData();
+    DatabaseMetaData metaData = connection.get().getMetaData();
 
     // Test that all three modes produce well-formatted tables
     String schemas = introspectionService.listSchemas(metaData);

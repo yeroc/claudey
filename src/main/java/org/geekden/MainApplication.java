@@ -3,6 +3,7 @@ package org.geekden;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
+import io.quarkiverse.mcp.server.stdio.runtime.StdioMcpMessageHandler;
 import jakarta.inject.Inject;
 import org.geekden.mcp.cli.CliCommandHandler;
 import org.jboss.logging.Logger;
@@ -36,6 +37,9 @@ public class MainApplication implements QuarkusApplication {
   @Inject
   CliCommandHandler cliHandler;
 
+  @Inject
+  StdioMcpMessageHandler mcpHandler;
+
   @Override
   public int run(String... args) throws Exception {
     LOG.info("MCP Database Server starting...");
@@ -52,8 +56,12 @@ public class MainApplication implements QuarkusApplication {
     }
 
     // Default: Run as MCP stdio server
-    // The Quarkiverse MCP extension automatically handles stdio server lifecycle
+    // Manually initialize the MCP server since auto-initialization is disabled
     LOG.info("Running in MCP server mode (stdio)");
+    LOG.info("Initializing MCP stdio server...");
+
+    mcpHandler.initialize(System.out);
+
     LOG.info("Server ready - waiting for MCP client connections via stdio");
 
     // Keep the application running for MCP server mode

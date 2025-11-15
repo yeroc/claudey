@@ -66,9 +66,7 @@ jobs:
         run: mvn --batch-mode clean verify -Drevision=${{ steps.parse_version.outputs.version }}
 
       - name: Run tests with SQLite
-        env:
-          DB_KIND: sqlite
-          DB_URL: "jdbc:sqlite::memory:"
+        # No env vars needed - defaults to file-based SQLite for proper test isolation
         run: mvn --batch-mode clean verify -Drevision=${{ steps.parse_version.outputs.version }}
 
   build-jar:

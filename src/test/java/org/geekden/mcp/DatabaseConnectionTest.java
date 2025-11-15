@@ -1,5 +1,7 @@
 package org.geekden.mcp;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.agroal.api.AgroalDataSource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
@@ -19,7 +21,7 @@ import static org.hamcrest.Matchers.*;
  * Only runs if database is configured via environment variables.
  */
 @QuarkusTest
-class DatabaseConnectionTest {
+class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   Instance<AgroalDataSource> dataSource;

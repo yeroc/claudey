@@ -1,8 +1,11 @@
 package org.geekden.mcp.cli;
 
+import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -12,17 +15,24 @@ import static org.hamcrest.Matchers.*;
 /**
  * Test CLI command handler with database configured via environment variables.
  * <p>
- * Note: Output verification is not possible with MCP stdio extension active.
- * These tests verify exit codes with environment-based configuration.
+ * These tests only run when DB_URL environment variable is set.
  */
 @QuarkusTest
-class CliCommandHandlerWithEnvironmentVariablesTest {
+class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
   CliCommandHandler cliHandler;
 
   @Inject
   DatabaseConfig config;
+
+  @Inject
+  CapturingOutput output;
+
+  @BeforeEach
+  void setUp() {
+    output.reset();
+  }
 
   @Test
   @EnabledIfEnvironmentVariable(named = "DB_URL", matches = ".+")

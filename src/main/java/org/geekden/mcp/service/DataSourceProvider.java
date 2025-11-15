@@ -17,8 +17,6 @@ import java.util.Optional;
  * Provides connections directly via DriverManager to support dynamic JDBC URLs
  * without requiring build-time configuration. This approach trades connection
  * pooling for simplicity and flexibility.
- * <p>
- * All consumers just @Inject Connection and don't worry about the source.
  */
 @ApplicationScoped
 public class DataSourceProvider {
@@ -64,7 +62,7 @@ public class DataSourceProvider {
     LOG.debug("Connecting to database: " + url);
 
     // Connect with or without credentials
-    if (username.isPresent() && !username.get().isEmpty()) {
+    if (username.isPresent()) {
       return DriverManager.getConnection(url, username.get(), password.orElse(""));
     } else {
       return DriverManager.getConnection(url);
