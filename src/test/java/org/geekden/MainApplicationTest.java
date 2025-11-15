@@ -41,4 +41,34 @@ class MainApplicationTest {
     int exitCode = cmd.execute("nonexistent");
     assertThat("Invalid command should return usage error", exitCode, is(2));
   }
+
+  // Tests for Picocli parameter validation through the full command-line flow
+
+  @Test
+  void testQueryCommandMissingRequiredParameterFails() {
+    CommandLine cmd = new CommandLine(app, factory);
+    int exitCode = cmd.execute("query");
+    assertThat("Query without SQL should fail with usage error", exitCode, is(2));
+  }
+
+  @Test
+  void testQueryCommandNonNumericPageFails() {
+    CommandLine cmd = new CommandLine(app, factory);
+    int exitCode = cmd.execute("query", "SELECT 1", "--page", "abc");
+    assertThat("Non-numeric page value should fail with usage error", exitCode, is(2));
+  }
+
+  @Test
+  void testQueryCommandMissingPageValueFails() {
+    CommandLine cmd = new CommandLine(app, factory);
+    int exitCode = cmd.execute("query", "SELECT 1", "--page");
+    assertThat("Missing --page value should fail with usage error", exitCode, is(2));
+  }
+
+  @Test
+  void testIntrospectCommandTooManyArgumentsFails() {
+    CommandLine cmd = new CommandLine(app, factory);
+    int exitCode = cmd.execute("introspect", "arg1", "arg2", "arg3");
+    assertThat("Too many arguments should fail with usage error", exitCode, is(2));
+  }
 }
