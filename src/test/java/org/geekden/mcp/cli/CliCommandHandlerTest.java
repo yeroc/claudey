@@ -1,11 +1,13 @@
 package org.geekden.mcp.cli;
 
 import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+import org.geekden.MainApplication;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import picocli.CommandLine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -19,7 +21,10 @@ import static org.hamcrest.Matchers.*;
 class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
-  CliCommandHandler cliHandler;
+  MainApplication app;
+
+  @Inject
+  CommandLine.IFactory factory;
 
   @Inject
   CapturingOutput output;
@@ -29,15 +34,14 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
     output.reset();
   }
 
-  @Test
-  void testCliHandlerInjection() {
-    assertThat("CliCommandHandler should be injected",
-        cliHandler, is(notNullValue()));
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
   }
 
   @Test
   void testInvalidCommandFails() {
-    int exitCode = cliHandler.execute(new String[]{"invalid"});
+    int exitCode = execute("invalid");
     assertThat("Should return exit code 2 for invalid command (Picocli usage error)", exitCode, is(2));
 
     String stderr = output.getStderr();
@@ -46,19 +50,19 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testIntrospectTooManyArgumentsFails() {
-    int exitCode = cliHandler.execute(new String[]{"introspect", "schema", "table", "extra"});
+    int exitCode = execute("introspect", "schema", "table", "extra");
     assertThat("Should return exit code 2 for invalid introspect arguments (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testQueryMissingArgumentFails() {
-    int exitCode = cliHandler.execute(new String[]{"query"});
+    int exitCode = execute("query");
     assertThat("Should return exit code 2 when query SQL is missing (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testQueryInvalidPageNumberFails() {
-    int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1", "--page", "invalid"});
+    int exitCode = execute("query", "SELECT 1", "--page", "invalid");
     assertThat("Should return exit code 2 for invalid page number (Picocli usage error)", exitCode, is(2));
   }
 }

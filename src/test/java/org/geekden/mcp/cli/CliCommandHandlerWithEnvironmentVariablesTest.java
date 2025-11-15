@@ -1,16 +1,34 @@
 package org.geekden.mcp.cli;
 
 import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 import io.quarkus.test.junit.QuarkusTest;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import jakarta.inject.Inject;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import org.geekden.mcp.config.DatabaseConfig;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import org.junit.jupiter.api.BeforeEach;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import org.junit.jupiter.api.Test;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import static org.hamcrest.Matchers.*;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 /**
  * Test CLI command handler with database configured via environment variables.
@@ -21,7 +39,10 @@ import static org.hamcrest.Matchers.*;
 class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
-  CliCommandHandler cliHandler;
+  MainApplication app;
+
+  @Inject
+  CommandLine.IFactory factory;
 
   @Inject
   DatabaseConfig config;
@@ -31,7 +52,22 @@ class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseInte
 
   @BeforeEach
   void setUp() {
+
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
+  }
     output.reset();
+
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
+  }
+  }
+
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
   }
 
   @Test
@@ -40,7 +76,7 @@ class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseInte
     assertThat("Database should be configured via environment variables",
         config.isConfigured(), is(true));
 
-    int exitCode = cliHandler.execute(new String[]{"introspect"});
+    int exitCode = execute(new String[]{"introspect"});
     assertThat("CLI introspect should succeed with configured database", exitCode, is(0));
   }
 
@@ -50,7 +86,7 @@ class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseInte
     assertThat("Database should be configured via environment variables",
         config.isConfigured(), is(true));
 
-    int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
+    int exitCode = execute(new String[]{"query", "SELECT 1"});
     assertThat("CLI query should succeed with configured database", exitCode, is(0));
   }
 
@@ -60,7 +96,7 @@ class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseInte
     assertThat("Should be using PostgreSQL database",
         config.getJdbcUrl().orElse(""), containsString("postgres"));
 
-    int exitCode = cliHandler.execute(new String[]{"introspect"});
+    int exitCode = execute(new String[]{"introspect"});
     assertThat("PostgreSQL introspect should succeed", exitCode, is(0));
   }
 
@@ -70,7 +106,7 @@ class CliCommandHandlerWithEnvironmentVariablesTest extends AbstractDatabaseInte
     assertThat("Should be using SQLite database",
         config.getJdbcUrl().orElse(""), containsString("sqlite"));
 
-    int exitCode = cliHandler.execute(new String[]{"introspect"});
+    int exitCode = execute(new String[]{"introspect"});
     assertThat("SQLite introspect should succeed", exitCode, is(0));
   }
 }

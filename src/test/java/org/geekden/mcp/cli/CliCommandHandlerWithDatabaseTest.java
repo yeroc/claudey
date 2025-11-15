@@ -1,18 +1,38 @@
 package org.geekden.mcp.cli;
 
 import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 import io.quarkus.test.junit.QuarkusTest;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import io.quarkus.test.junit.QuarkusTestProfile;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import io.quarkus.test.junit.TestProfile;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import jakarta.inject.Inject;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import org.junit.jupiter.api.BeforeEach;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import org.junit.jupiter.api.Test;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 import java.util.Map;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 import static org.hamcrest.Matchers.*;
+import org.geekden.MainApplication;
+import picocli.CommandLine;
 
 /**
  * Test CLI command handler with SQLite database configured.
@@ -24,14 +44,32 @@ import static org.hamcrest.Matchers.*;
 class CliCommandHandlerWithDatabaseTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
-  CliCommandHandler cliHandler;
+  MainApplication app;
+
+  @Inject
+  CommandLine.IFactory factory;
 
   @Inject
   CapturingOutput output;
 
   @BeforeEach
   void setUp() {
+
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
+  }
     output.reset();
+
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
+  }
+  }
+
+  private int execute(String... args) {
+    CommandLine cmd = new CommandLine(app, factory);
+    return cmd.execute(args);
   }
 
   /**
@@ -49,31 +87,31 @@ class CliCommandHandlerWithDatabaseTest extends AbstractDatabaseIntegrationTest 
 
   @Test
   void testIntrospectWithDatabaseSucceeds() {
-    int exitCode = cliHandler.execute(new String[]{"introspect"});
+    int exitCode = execute(new String[]{"introspect"});
     assertThat("Should return exit code 0 with database configured", exitCode, is(0));
   }
 
   @Test
   void testIntrospectSchemaWithDatabaseSucceeds() {
-    int exitCode = cliHandler.execute(new String[]{"introspect", "main"});
+    int exitCode = execute(new String[]{"introspect", "main"});
     assertThat("Should return exit code 0 with database configured", exitCode, is(0));
   }
 
   @Test
   void testIntrospectTableWithDatabaseSucceeds() {
-    int exitCode = cliHandler.execute(new String[]{"introspect", "main", "users"});
+    int exitCode = execute(new String[]{"introspect", "main", "users"});
     assertThat("Should return exit code 0 with database configured", exitCode, is(0));
   }
 
   @Test
   void testQueryWithDatabaseSucceeds() {
-    int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1"});
+    int exitCode = execute(new String[]{"query", "SELECT 1"});
     assertThat("Should return exit code 0 with database configured", exitCode, is(0));
   }
 
   @Test
   void testQueryWithPageParameterSucceeds() {
-    int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1", "--page", "2"});
+    int exitCode = execute(new String[]{"query", "SELECT 1", "--page", "2"});
     assertThat("Should return exit code 0 with page parameter", exitCode, is(0));
   }
 }
