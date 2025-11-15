@@ -37,7 +37,7 @@ public class CliCommandHandler {
    * @return Exit code (0 for success, 1 for error)
    */
   public int execute(String[] args) {
-    CommandLine cmd = new CommandLine(DatabaseCliCommand.class, factory);
+    CommandLine cmd = new CommandLine(org.geekden.MainApplication.class, factory);
 
     // Configure Picocli to use our custom OutputWriter
     PrintWriter out = new PrintWriter(new OutputStreamWriter(output, false), true);
@@ -54,12 +54,8 @@ public class CliCommandHandler {
 
     // Normalize Picocli exit codes to maintain backward compatibility:
     // - Exit code 0: success
-    // - Exit code 99: MCP server mode (treat as error in test context)
     // - All other codes: normalize to 1 for error
-    if (exitCode == 0) {
-      return 0;
-    }
-    return 1;  // All errors (including exit code 99) become 1
+    return exitCode == 0 ? 0 : 1;
   }
 
   /**
