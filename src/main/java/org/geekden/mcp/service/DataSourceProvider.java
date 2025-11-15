@@ -62,7 +62,7 @@ public class DataSourceProvider {
     LOG.debug("Connecting to database: " + url);
 
     // Connect with or without credentials
-    if (username.isPresent() && !username.get().isEmpty()) {
+    if (username.isPresent()) {
       return DriverManager.getConnection(url, username.get(), password.orElse(""));
     } else {
       return DriverManager.getConnection(url);
