@@ -3,6 +3,7 @@ package org.geekden;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
+import io.quarkus.runtime.configuration.ProfileManager;
 import io.quarkiverse.mcp.server.stdio.runtime.StdioMcpMessageHandler;
 import jakarta.inject.Inject;
 import org.geekden.mcp.cli.IntrospectCommand;
@@ -54,10 +55,17 @@ public class MainApplication implements Runnable, QuarkusApplication {
 
   /**
    * Called by Picocli when no subcommand is specified.
-   * Starts the MCP stdio server.
+   * Starts the MCP stdio server (production mode only).
+   * In test mode, this does nothing to avoid hanging tests.
    */
   @Override
   public void run() {
+    // In test mode, don't start the server (prevents tests from hanging)
+    if ("test".equals(ProfileManager.getActiveProfile())) {
+      LOG.debug("Skipping MCP server startup in test mode");
+      return;
+    }
+
     LOG.info("Running in MCP server mode (stdio)");
     LOG.info("Initializing MCP stdio server...");
 
