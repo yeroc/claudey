@@ -8,19 +8,22 @@ import java.util.Optional;
 
 /**
  * Database configuration using MicroProfile Config.
- * Environment variables are mapped via application.properties.
+ * <p>
+ * Reads from canonical quarkus.datasource.* properties, which are populated
+ * from user-facing DB_URL/DB_USERNAME/DB_PASSWORD environment variables
+ * via application.properties mappings.
  */
 @ApplicationScoped
 @RegisterForReflection
 public class DatabaseConfig {
 
-  @ConfigProperty(name = "DB_URL")
+  @ConfigProperty(name = "quarkus.datasource.jdbc.url")
   Optional<String> jdbcUrl;
 
-  @ConfigProperty(name = "DB_USERNAME")
+  @ConfigProperty(name = "quarkus.datasource.username")
   Optional<String> username;
 
-  @ConfigProperty(name = "DB_PASSWORD")
+  @ConfigProperty(name = "quarkus.datasource.password")
   Optional<String> password;
 
   @ConfigProperty(name = "db.page-size", defaultValue = "100")
