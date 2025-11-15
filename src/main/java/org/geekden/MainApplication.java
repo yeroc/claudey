@@ -5,27 +5,39 @@ import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import io.quarkiverse.mcp.server.stdio.runtime.StdioMcpMessageHandler;
 import jakarta.inject.Inject;
-import org.geekden.mcp.cli.CliCommandHandler;
+import org.geekden.mcp.cli.IntrospectCommand;
+import org.geekden.mcp.cli.QueryCommand;
 import org.jboss.logging.Logger;
-
-import java.util.Arrays;
+import picocli.CommandLine;
 
 /**
  * MCP Database Server - Main Application Entry Point
  *
- * Modes:
- * 1. MCP Server (default): Runs as stdio MCP server for AI agents
- * 2. CLI Mode (--cli flag): One-shot database commands for testing
+ * Uses Picocli for all command-line argument processing:
+ * - No arguments: Runs as stdio MCP server for AI agents (default)
+ * - CLI subcommands: One-shot database commands for testing
  *
- * CLI Usage:
- *   ./app --cli introspect
- *   ./app --cli introspect public
- *   ./app --cli introspect public users
- *   ./app --cli query "SELECT * FROM users"
- *   ./app --cli query "SELECT * FROM users" --page 2
+ * Usage:
+ *   ./app                         # MCP server mode
+ *   ./app introspect              # CLI: List schemas/tables
+ *   ./app introspect public       # CLI: List tables in schema
+ *   ./app introspect public users # CLI: Show table structure
+ *   ./app query "SELECT * FROM t" # CLI: Execute query
+ *   ./app query "..." --page 2    # CLI: Execute with pagination
+ *   ./app --help                  # Show help
  */
 @QuarkusMain
-public class MainApplication implements QuarkusApplication {
+@CommandLine.Command(
+  name = "mcp-database",
+  mixinStandardHelpOptions = true,
+  version = "1.0.0",
+  description = "MCP Database Server - runs as stdio server by default, or use CLI subcommands",
+  subcommands = {
+    IntrospectCommand.class,
+    QueryCommand.class
+  }
+)
+public class MainApplication implements Runnable, QuarkusApplication {
 
   static {
     // Set LogManager before any JUL access (must be in static block)
@@ -35,28 +47,17 @@ public class MainApplication implements QuarkusApplication {
   private static final Logger LOG = Logger.getLogger(MainApplication.class);
 
   @Inject
-  CliCommandHandler cliHandler;
+  CommandLine.IFactory factory;
 
   @Inject
   StdioMcpMessageHandler mcpHandler;
 
+  /**
+   * Called by Picocli when no subcommand is specified.
+   * Starts the MCP stdio server.
+   */
   @Override
-  public int run(String... args) throws Exception {
-    LOG.info("MCP Database Server starting...");
-    LOG.debug("Arguments: " + Arrays.toString(args));
-
-    // Check for CLI mode
-    if (args.length > 0 && "--cli".equals(args[0])) {
-      LOG.info("CLI mode detected");
-      // Remove --cli from args and pass the rest to CLI handler
-      String[] cliArgs = Arrays.copyOfRange(args, 1, args.length);
-      int exitCode = cliHandler.execute(cliArgs);
-      LOG.info("CLI execution complete with exit code: " + exitCode);
-      return exitCode;
-    }
-
-    // Default: Run as MCP stdio server
-    // Manually initialize the MCP server since auto-initialization is disabled
+  public void run() {
     LOG.info("Running in MCP server mode (stdio)");
     LOG.info("Initializing MCP stdio server...");
 
@@ -66,13 +67,14 @@ public class MainApplication implements QuarkusApplication {
 
     // Keep the application running for MCP server mode
     Quarkus.waitForExit();
-    return 0;
   }
 
-  public static void main(String[] args) {
-    Quarkus.run(MainApplication.class, (exitCode, exception) -> {
-      // Ensure proper exit code propagation for CLI mode
-      System.exit(exitCode);
-    }, args);
+  /**
+   * QuarkusApplication entry point.
+   * Creates CommandLine and delegates to Picocli for execution.
+   */
+  @Override
+  public int run(String... args) throws Exception {
+    return new CommandLine(this, factory).execute(args);
   }
 }
