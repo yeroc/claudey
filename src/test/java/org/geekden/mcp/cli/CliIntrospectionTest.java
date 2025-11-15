@@ -59,7 +59,7 @@ class CliIntrospectionTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testCliIntrospectTooManyArgsFails() {
     int exitCode = cliHandler.execute(new String[]{"introspect", "arg1", "arg2", "arg3"});
-    assertThat("Should fail with too many arguments", exitCode, is(1));
+    assertThat("Should fail with too many arguments (Picocli usage error)", exitCode, is(2));
 
     String stderr = output.getStderr();
     assertThat("Should show unmatched argument error", stderr, containsString("Unmatched argument"));

@@ -38,7 +38,7 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testInvalidCommandFails() {
     int exitCode = cliHandler.execute(new String[]{"invalid"});
-    assertThat("Should return exit code 1 for invalid command", exitCode, is(1));
+    assertThat("Should return exit code 2 for invalid command (Picocli usage error)", exitCode, is(2));
 
     String stderr = output.getStderr();
     assertThat("Should show unmatched argument error", stderr, containsString("Unmatched argument"));
@@ -47,24 +47,24 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testNoArgumentsFails() {
     int exitCode = cliHandler.execute(new String[]{});
-    assertThat("Should return exit code 1 when no arguments", exitCode, is(1));
+    assertThat("Should return exit code 2 when no arguments (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testIntrospectTooManyArgumentsFails() {
     int exitCode = cliHandler.execute(new String[]{"introspect", "schema", "table", "extra"});
-    assertThat("Should return exit code 1 for invalid introspect arguments", exitCode, is(1));
+    assertThat("Should return exit code 2 for invalid introspect arguments (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testQueryMissingArgumentFails() {
     int exitCode = cliHandler.execute(new String[]{"query"});
-    assertThat("Should return exit code 1 when query SQL is missing", exitCode, is(1));
+    assertThat("Should return exit code 2 when query SQL is missing (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testQueryInvalidPageNumberFails() {
     int exitCode = cliHandler.execute(new String[]{"query", "SELECT 1", "--page", "invalid"});
-    assertThat("Should return exit code 1 for invalid page number", exitCode, is(1));
+    assertThat("Should return exit code 2 for invalid page number (Picocli usage error)", exitCode, is(2));
   }
 }

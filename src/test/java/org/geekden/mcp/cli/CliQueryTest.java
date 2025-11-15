@@ -111,7 +111,7 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testCliQueryMissingQueryFails() {
     int exitCode = cliHandler.execute(new String[]{"query"});
-    assertThat("Should fail when query is missing", exitCode, is(1));
+    assertThat("Should fail when query is missing (Picocli usage error)", exitCode, is(2));
 
     String stderr = output.getStderr();
     assertThat("Should show missing required parameter error", stderr, containsString("Missing required parameter"));
@@ -135,14 +135,14 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
   void testCliQueryNonNumericPageFails() {
     int exitCode = cliHandler.execute(
         new String[]{"query", "SELECT * FROM cli_test_data", "--page", "abc"});
-    assertThat("Should fail with non-numeric page", exitCode, is(1));
+    assertThat("Should fail with non-numeric page (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testCliQueryMissingPageValueFails() {
     int exitCode = cliHandler.execute(
         new String[]{"query", "SELECT * FROM cli_test_data", "--page"});
-    assertThat("Should fail when --page value is missing", exitCode, is(1));
+    assertThat("Should fail when --page value is missing (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
@@ -186,12 +186,12 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testCliUnknownCommandFails() {
     int exitCode = cliHandler.execute(new String[]{"unknown"});
-    assertThat("Should fail with unknown command", exitCode, is(1));
+    assertThat("Should fail with unknown command (Picocli usage error)", exitCode, is(2));
   }
 
   @Test
   void testCliNoArgumentsFails() {
     int exitCode = cliHandler.execute(new String[]{});
-    assertThat("Should fail with no arguments", exitCode, is(1));
+    assertThat("Should fail with no arguments (Picocli usage error)", exitCode, is(2));
   }
 }

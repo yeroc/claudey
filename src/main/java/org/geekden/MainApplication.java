@@ -1,6 +1,5 @@
 package org.geekden;
 
-import io.quarkus.picocli.runtime.annotations.TopCommand;
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
@@ -28,7 +27,6 @@ import picocli.CommandLine;
  *   ./app --help                  # Show help
  */
 @QuarkusMain
-@TopCommand
 @CommandLine.Command(
   name = "mcp-database",
   mixinStandardHelpOptions = true,
@@ -47,6 +45,9 @@ public class MainApplication implements Runnable, QuarkusApplication {
   }
 
   private static final Logger LOG = Logger.getLogger(MainApplication.class);
+
+  @Inject
+  CommandLine.IFactory factory;
 
   @Inject
   StdioMcpMessageHandler mcpHandler;
@@ -70,16 +71,10 @@ public class MainApplication implements Runnable, QuarkusApplication {
 
   /**
    * QuarkusApplication entry point.
-   * With @TopCommand, Picocli handles all the command execution.
+   * Creates CommandLine and delegates to Picocli for execution.
    */
   @Override
-  public int run(String... args) {
-    // Picocli will handle command execution
-    // This method exists to satisfy QuarkusApplication interface
-    return 0;
-  }
-
-  public static void main(String[] args) {
-    Quarkus.run(MainApplication.class, args);
+  public int run(String... args) throws Exception {
+    return new CommandLine(this, factory).execute(args);
   }
 }

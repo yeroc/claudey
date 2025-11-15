@@ -34,7 +34,7 @@ public class CliCommandHandler {
    * Execute CLI command using Picocli and return exit code.
    *
    * @param args Command line arguments (subcommand and options)
-   * @return Exit code (0 for success, 1 for error)
+   * @return Picocli exit code (0=success, 1=exception, 2=usage error)
    */
   public int execute(String[] args) {
     CommandLine cmd = new CommandLine(org.geekden.MainApplication.class, factory);
@@ -52,10 +52,7 @@ public class CliCommandHandler {
     out.flush();
     err.flush();
 
-    // Normalize Picocli exit codes to maintain backward compatibility:
-    // - Exit code 0: success
-    // - All other codes: normalize to 1 for error
-    return exitCode == 0 ? 0 : 1;
+    return exitCode;
   }
 
   /**
