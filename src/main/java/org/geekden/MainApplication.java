@@ -5,8 +5,9 @@ import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import io.quarkiverse.mcp.server.stdio.runtime.StdioMcpMessageHandler;
 import jakarta.inject.Inject;
-import org.geekden.mcp.cli.CliCommandHandler;
+import org.geekden.mcp.cli.DatabaseCliCommand;
 import org.jboss.logging.Logger;
+import picocli.CommandLine;
 
 import java.util.Arrays;
 
@@ -35,7 +36,7 @@ public class MainApplication implements QuarkusApplication {
   private static final Logger LOG = Logger.getLogger(MainApplication.class);
 
   @Inject
-  CliCommandHandler cliHandler;
+  CommandLine.IFactory factory;
 
   @Inject
   StdioMcpMessageHandler mcpHandler;
@@ -48,9 +49,10 @@ public class MainApplication implements QuarkusApplication {
     // Check for CLI mode
     if (args.length > 0 && "--cli".equals(args[0])) {
       LOG.info("CLI mode detected");
-      // Remove --cli from args and pass the rest to CLI handler
+      // Remove --cli from args and pass the rest to Picocli
       String[] cliArgs = Arrays.copyOfRange(args, 1, args.length);
-      int exitCode = cliHandler.execute(cliArgs);
+      CommandLine cmd = new CommandLine(DatabaseCliCommand.class, factory);
+      int exitCode = cmd.execute(cliArgs);
       LOG.info("CLI execution complete with exit code: " + exitCode);
       return exitCode;
     }

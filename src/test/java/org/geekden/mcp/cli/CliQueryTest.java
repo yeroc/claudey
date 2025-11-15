@@ -114,7 +114,7 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
     assertThat("Should fail when query is missing", exitCode, is(1));
 
     String stderr = output.getStderr();
-    assertThat("Should show missing query error", stderr, containsString("Missing SQL query"));
+    assertThat("Should show missing required parameter error", stderr, containsString("Missing required parameter"));
   }
 
   @Test

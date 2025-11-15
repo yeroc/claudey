@@ -62,6 +62,6 @@ class CliIntrospectionTest extends AbstractDatabaseIntegrationTest {
     assertThat("Should fail with too many arguments", exitCode, is(1));
 
     String stderr = output.getStderr();
-    assertThat("Should show error message", stderr, containsString("Invalid arguments"));
+    assertThat("Should show unmatched argument error", stderr, containsString("Unmatched argument"));
   }
 }

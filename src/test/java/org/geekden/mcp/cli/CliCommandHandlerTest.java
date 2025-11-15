@@ -41,7 +41,7 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
     assertThat("Should return exit code 1 for invalid command", exitCode, is(1));
 
     String stderr = output.getStderr();
-    assertThat("Should show unknown command error", stderr, containsString("Unknown command"));
+    assertThat("Should show unmatched argument error", stderr, containsString("Unmatched argument"));
   }
 
   @Test
