@@ -165,10 +165,10 @@ jobs:
           BINARY=${{ steps.find_binary.outputs.binary_path }}
           echo "Testing binary functionality: $BINARY"
 
-          # Test --cli introspect command with SQLite in-memory database
+          # Test introspect command with SQLite in-memory database
           export DB_KIND="sqlite"
           export DB_URL="jdbc:sqlite::memory:"
-          $BINARY --cli introspect
+          $BINARY introspect
 
           echo "Binary functional test completed successfully"
 
