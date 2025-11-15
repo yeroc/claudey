@@ -15,11 +15,11 @@ import java.io.IOException;
  * Picocli for actual command parsing and execution.
  *
  * Usage:
- *   --cli introspect                    # List all schemas/tables
- *   --cli introspect <schema>           # List tables in schema
- *   --cli introspect <schema> <table>   # Show table structure
- *   --cli query "<sql>"                 # Execute SQL query (page 1)
- *   --cli query "<sql>" --page <n>      # Execute SQL query with pagination
+ *   introspect                    # List all schemas/tables
+ *   introspect <schema>           # List tables in schema
+ *   introspect <schema> <table>   # Show table structure
+ *   query "<sql>"                 # Execute SQL query (page 1)
+ *   query "<sql>" --page <n>      # Execute SQL query with pagination
  */
 @ApplicationScoped
 public class CliCommandHandler {
@@ -33,7 +33,7 @@ public class CliCommandHandler {
   /**
    * Execute CLI command using Picocli and return exit code.
    *
-   * @param args Command line arguments (excluding --cli)
+   * @param args Command line arguments (subcommand and options)
    * @return Exit code (0 for success, 1 for error)
    */
   public int execute(String[] args) {
@@ -53,8 +53,13 @@ public class CliCommandHandler {
     err.flush();
 
     // Normalize Picocli exit codes to maintain backward compatibility:
-    // Picocli uses 2 for invalid input, but we want to return 1 for all errors
-    return exitCode == 0 ? 0 : 1;
+    // - Exit code 0: success
+    // - Exit code 99: MCP server mode (treat as error in test context)
+    // - All other codes: normalize to 1 for error
+    if (exitCode == 0) {
+      return 0;
+    }
+    return 1;  // All errors (including exit code 99) become 1
   }
 
   /**

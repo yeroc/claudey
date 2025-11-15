@@ -14,16 +14,18 @@ import java.util.Arrays;
 /**
  * MCP Database Server - Main Application Entry Point
  *
- * Modes:
- * 1. MCP Server (default): Runs as stdio MCP server for AI agents
- * 2. CLI Mode (--cli flag): One-shot database commands for testing
+ * Uses Picocli for all command-line argument processing:
+ * - No arguments: Runs as stdio MCP server for AI agents (default)
+ * - CLI subcommands: One-shot database commands for testing
  *
- * CLI Usage:
- *   ./app --cli introspect
- *   ./app --cli introspect public
- *   ./app --cli introspect public users
- *   ./app --cli query "SELECT * FROM users"
- *   ./app --cli query "SELECT * FROM users" --page 2
+ * Usage:
+ *   ./app                         # MCP server mode
+ *   ./app introspect              # CLI: List schemas/tables
+ *   ./app introspect public       # CLI: List tables in schema
+ *   ./app introspect public users # CLI: Show table structure
+ *   ./app query "SELECT * FROM t" # CLI: Execute query
+ *   ./app query "..." --page 2    # CLI: Execute with pagination
+ *   ./app --help                  # Show help
  */
 @QuarkusMain
 public class MainApplication implements QuarkusApplication {
@@ -46,29 +48,28 @@ public class MainApplication implements QuarkusApplication {
     LOG.info("MCP Database Server starting...");
     LOG.debug("Arguments: " + Arrays.toString(args));
 
-    // Check for CLI mode
-    if (args.length > 0 && "--cli".equals(args[0])) {
-      LOG.info("CLI mode detected");
-      // Remove --cli from args and pass the rest to Picocli
-      String[] cliArgs = Arrays.copyOfRange(args, 1, args.length);
-      CommandLine cmd = new CommandLine(DatabaseCliCommand.class, factory);
-      int exitCode = cmd.execute(cliArgs);
-      LOG.info("CLI execution complete with exit code: " + exitCode);
-      return exitCode;
+    // Always use Picocli for command parsing
+    // - No args: DatabaseCliCommand.call() returns 99 -> MCP server mode
+    // - Subcommands (introspect, query): Execute CLI operation and return exit code
+    CommandLine cmd = new CommandLine(DatabaseCliCommand.class, factory);
+    int exitCode = cmd.execute(args);
+
+    // Exit code 99 is special: indicates we should run MCP server mode
+    if (exitCode == 99) {
+      LOG.info("Running in MCP server mode (stdio)");
+      LOG.info("Initializing MCP stdio server...");
+
+      mcpHandler.initialize(System.out);
+
+      LOG.info("Server ready - waiting for MCP client connections via stdio");
+
+      // Keep the application running for MCP server mode
+      Quarkus.waitForExit();
+      return 0;
     }
 
-    // Default: Run as MCP stdio server
-    // Manually initialize the MCP server since auto-initialization is disabled
-    LOG.info("Running in MCP server mode (stdio)");
-    LOG.info("Initializing MCP stdio server...");
-
-    mcpHandler.initialize(System.out);
-
-    LOG.info("Server ready - waiting for MCP client connections via stdio");
-
-    // Keep the application running for MCP server mode
-    Quarkus.waitForExit();
-    return 0;
+    LOG.info("Application complete with exit code: " + exitCode);
+    return exitCode;
   }
 
   public static void main(String[] args) {
