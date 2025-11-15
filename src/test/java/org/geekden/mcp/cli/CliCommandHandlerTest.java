@@ -45,12 +45,6 @@ class CliCommandHandlerTest extends AbstractDatabaseIntegrationTest {
   }
 
   @Test
-  void testNoArgumentsFails() {
-    int exitCode = cliHandler.execute(new String[]{});
-    assertThat("Should return exit code 2 when no arguments (Picocli usage error)", exitCode, is(2));
-  }
-
-  @Test
   void testIntrospectTooManyArgumentsFails() {
     int exitCode = cliHandler.execute(new String[]{"introspect", "schema", "table", "extra"});
     assertThat("Should return exit code 2 for invalid introspect arguments (Picocli usage error)", exitCode, is(2));

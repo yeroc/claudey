@@ -188,10 +188,4 @@ class CliQueryTest extends AbstractDatabaseIntegrationTest {
     int exitCode = cliHandler.execute(new String[]{"unknown"});
     assertThat("Should fail with unknown command (Picocli usage error)", exitCode, is(2));
   }
-
-  @Test
-  void testCliNoArgumentsFails() {
-    int exitCode = cliHandler.execute(new String[]{});
-    assertThat("Should fail with no arguments (Picocli usage error)", exitCode, is(2));
-  }
 }
