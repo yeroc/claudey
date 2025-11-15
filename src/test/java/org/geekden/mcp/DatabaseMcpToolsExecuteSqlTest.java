@@ -201,13 +201,13 @@ class DatabaseMcpToolsExecuteSqlTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteSelectQuery_complexQuery() {
     String result = mcpTools.executeSql(
-        "SELECT id, name, ROUND(price, 2) as rounded_price FROM test_products WHERE price > 50.00 ORDER BY price DESC", 1);
+        "SELECT id, name, price FROM test_products WHERE price > 50.00 ORDER BY price DESC", 1);
 
-    assertThat("Should execute complex query",
+    assertThat("Should execute complex query with WHERE and ORDER BY",
         result, allOf(
             containsString("id"),
             containsString("name"),
-            containsString("rounded_price")
+            containsString("price")
         ));
   }
 

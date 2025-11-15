@@ -205,11 +205,12 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
     assertThat("Should show success message",
         result, is("Command executed successfully."));
 
-    // Verify table was created
-    String selectQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name='test_table'";
-    String selectResult = sqlExecutionService.executeQuery(connection.get(), selectQuery, 1, 100);
-    assertThat("Should find created table",
-        selectResult, containsString("test_table"));
+    // Verify table was created using JDBC metadata (cross-database)
+    boolean tableExists = connection.get().getMetaData()
+        .getTables(null, null, "test_table", new String[]{"TABLE"})
+        .next();
+    assertThat("Should find created table using JDBC metadata",
+        tableExists, is(true));
 
     // Clean up
     try (Statement stmt = connection.get().createStatement()) {
