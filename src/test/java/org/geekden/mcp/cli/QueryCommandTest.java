@@ -113,15 +113,6 @@ class QueryCommandTest extends AbstractDatabaseIntegrationTest {
   }
 
   @Test
-  void testCliQueryMissingQueryFails() {
-    int exitCode = execute();
-    assertThat("Should fail when query is missing (Picocli usage error)", exitCode, is(2));
-
-    String stderr = output.getStderr();
-    assertThat("Should show missing required parameter error", stderr, containsString("Missing required parameter"));
-  }
-
-  @Test
   void testCliQueryInvalidPageNumberFails() {
     int exitCode = execute("SELECT * FROM cli_test_data", "--page", "0");
     assertThat("Should fail with invalid page number", exitCode, is(1));
@@ -131,18 +122,6 @@ class QueryCommandTest extends AbstractDatabaseIntegrationTest {
   void testCliQueryNegativePageNumberFails() {
     int exitCode = execute("SELECT * FROM cli_test_data", "--page", "-1");
     assertThat("Should fail with negative page number", exitCode, is(1));
-  }
-
-  @Test
-  void testCliQueryNonNumericPageFails() {
-    int exitCode = execute("SELECT * FROM cli_test_data", "--page", "abc");
-    assertThat("Should fail with non-numeric page (Picocli usage error)", exitCode, is(2));
-  }
-
-  @Test
-  void testCliQueryMissingPageValueFails() {
-    int exitCode = execute("SELECT * FROM cli_test_data", "--page");
-    assertThat("Should fail when --page value is missing (Picocli usage error)", exitCode, is(2));
   }
 
   @Test

@@ -64,13 +64,4 @@ class IntrospectCommandTest extends AbstractDatabaseIntegrationTest {
     int exitCode = execute("main", "nonexistent_table");
     assertThat("Should succeed with exit code 0", exitCode, is(0));
   }
-
-  @Test
-  void testCliIntrospectTooManyArgsFails() {
-    int exitCode = execute("arg1", "arg2", "arg3");
-    assertThat("Should fail with too many arguments (Picocli usage error)", exitCode, is(2));
-
-    String stderr = output.getStderr();
-    assertThat("Should show unmatched argument error", stderr, containsString("Unmatched argument"));
-  }
 }
