@@ -206,11 +206,12 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
         result, is("Command executed successfully."));
 
     // Verify table was created using JDBC metadata (cross-database)
-    boolean tableExists = connection.get().getMetaData()
-        .getTables(null, null, "test_table", new String[]{"TABLE"})
-        .next();
-    assertThat("Should find created table using JDBC metadata",
-        tableExists, is(true));
+    try (Connection conn = connection.get()) {
+      try (ResultSet rs = conn.getMetaData().getTables(null, null, "test_table", new String[]{"TABLE"})) {
+        assertThat("Should find created table using JDBC metadata",
+            rs.next(), is(true));
+      }
+    }
 
     // Clean up
     try (Statement stmt = connection.get().createStatement()) {
