@@ -2,6 +2,7 @@ package org.geekden;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.geekden.mcp.Main;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
@@ -9,14 +10,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Minimal integration test for MainApplication.
+ * Minimal integration test for Main.
  * Verifies that Picocli is properly wired up with our commands.
  */
 @QuarkusTest
-class MainApplicationTest {
+class MainTest {
 
   @Inject
-  MainApplication app;
+  Main app;
 
   @Inject
   CommandLine.IFactory factory;
