@@ -29,7 +29,6 @@ import picocli.CommandLine;
  */
 @QuarkusMain
 @CommandLine.Command(
-  name = "mcp-database-server",
   mixinStandardHelpOptions = true,
   versionProvider = AppVersionProvider.class,
   description = "MCP Database Server - runs as stdio server by default, or use CLI subcommands",
