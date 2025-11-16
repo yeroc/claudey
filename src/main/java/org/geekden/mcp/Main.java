@@ -1,4 +1,4 @@
-package org.geekden;
+package org.geekden.mcp;
 
 import io.quarkiverse.mcp.server.stdio.runtime.StdioMcpMessageHandler;
 import io.quarkus.runtime.Quarkus;

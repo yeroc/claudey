@@ -12,7 +12,7 @@ This is an MCP (Model Context Protocol) Database Server built with Quarkus frame
 - **Framework**: Quarkus 3.27.0 LTS
 - **MCP Extension**: Quarkiverse MCP Server stdio 1.7.0
 - **Databases**: PostgreSQL, SQLite (via JDBC)
-- **Main Class**: org.geekden.Main
+- **Main Class**: org.geekden.mcp.Main
 
 ## Development Commands
 

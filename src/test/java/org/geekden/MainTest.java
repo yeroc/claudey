@@ -2,6 +2,7 @@ package org.geekden;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.geekden.mcp.Main;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
