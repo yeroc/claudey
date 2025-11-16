@@ -5,6 +5,7 @@ import io.quarkus.runtime.QuarkusApplication;
 import io.quarkus.runtime.annotations.QuarkusMain;
 import io.quarkiverse.mcp.server.stdio.runtime.StdioMcpMessageHandler;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.geekden.mcp.cli.IntrospectCommand;
 import org.geekden.mcp.cli.QueryCommand;
 import org.jboss.logging.Logger;
@@ -52,6 +53,9 @@ public class Main implements Runnable, QuarkusApplication {
   @Inject
   StdioMcpMessageHandler mcpHandler;
 
+  @ConfigProperty(name = "quarkus.application.name")
+  String appName;
+
   /**
    * Called by Picocli when no subcommand is specified.
    * Starts the MCP stdio server.
@@ -75,6 +79,8 @@ public class Main implements Runnable, QuarkusApplication {
    */
   @Override
   public int run(String... args) throws Exception {
-    return new CommandLine(this, factory).execute(args);
+    return new CommandLine(this, factory)
+        .setCommandName(appName)
+        .execute(args);
   }
 }
