@@ -28,23 +28,23 @@ import picocli.CommandLine;
  */
 @QuarkusMain
 @CommandLine.Command(
-  name = "mcp-database",
+  name = "mcp-database-server",
   mixinStandardHelpOptions = true,
-  version = "1.0.0",
+  versionProvider = AppVersionProvider.class,
   description = "MCP Database Server - runs as stdio server by default, or use CLI subcommands",
   subcommands = {
     IntrospectCommand.class,
     QueryCommand.class
   }
 )
-public class MainApplication implements Runnable, QuarkusApplication {
+public class Main implements Runnable, QuarkusApplication {
 
   static {
     // Set LogManager before any JUL access (must be in static block)
     System.setProperty("java.util.logging.manager", "org.jboss.logmanager.LogManager");
   }
 
-  private static final Logger LOG = Logger.getLogger(MainApplication.class);
+  private static final Logger LOG = Logger.getLogger(Main.class);
 
   @Inject
   CommandLine.IFactory factory;
