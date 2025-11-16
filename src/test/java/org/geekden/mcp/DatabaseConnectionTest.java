@@ -2,7 +2,6 @@ package org.geekden.mcp;
 
 import org.geekden.mcp.AbstractDatabaseIntegrationTest;
 
-import io.agroal.api.AgroalDataSource;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -17,22 +16,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Test database connectivity.
+ * Test database connectivity with HikariCP connection pool.
  * Only runs if database is configured via environment variables.
  */
 @QuarkusTest
 class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
 
   @Inject
-  Instance<AgroalDataSource> dataSource;
+  Instance<Connection> connectionInstance;
 
   @Inject
   DatabaseConfig config;
 
   @Test
-  void testDataSourceInjection() {
-    assertThat("DataSource instance should be injected",
-        dataSource, is(notNullValue()));
+  void testConnectionInjection() {
+    assertThat("Connection instance should be injected",
+        connectionInstance, is(notNullValue()));
   }
 
   @Test
@@ -43,7 +42,7 @@ class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
     System.out.println("DB_URL: " + config.getJdbcUrl().orElse("not set"));
     System.out.println("DB_USERNAME: " + config.getUsername().map(u -> u.substring(0, Math.min(u.length(), 3)) + "***").orElse("not set"));
 
-    try (Connection conn = dataSource.get().getConnection()) {
+    try (Connection conn = connectionInstance.get()) {
       assertThat("Connection should not be null",
           conn, is(notNullValue()));
       assertThat("Connection should be open",
@@ -60,7 +59,7 @@ class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
       String driverVersion = metaData.getDriverVersion();
       String url = metaData.getURL();
 
-      System.out.println("=== Active Database Connection ===");
+      System.out.println("=== Active Database Connection (HikariCP) ===");
       System.out.println("Product: " + productName + " " + productVersion);
       System.out.println("Driver: " + driverName + " " + driverVersion);
       System.out.println("URL: " + url);
@@ -74,9 +73,9 @@ class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
   @Test
   @EnabledIf("isDatabaseConfigured")
   void testConnectionPooling() throws Exception {
-    // Test that we can get multiple connections from the pool
-    try (Connection conn1 = dataSource.get().getConnection();
-         Connection conn2 = dataSource.get().getConnection()) {
+    // Test that we can get multiple connections from HikariCP pool
+    try (Connection conn1 = connectionInstance.get();
+         Connection conn2 = connectionInstance.get()) {
 
       assertThat("First connection should not be null",
           conn1, is(notNullValue()));

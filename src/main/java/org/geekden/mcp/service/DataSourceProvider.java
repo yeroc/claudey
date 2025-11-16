@@ -1,5 +1,8 @@
 package org.geekden.mcp.service;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
@@ -12,11 +15,10 @@ import java.sql.SQLException;
 import java.util.Optional;
 
 /**
- * CDI producer for database connections using JDBC DriverManager.
+ * CDI producer for database connections using HikariCP connection pool.
  * <p>
- * Provides connections directly via DriverManager to support dynamic JDBC URLs
- * without requiring build-time configuration. This approach trades connection
- * pooling for simplicity and flexibility.
+ * Provides connections via HikariCP to support dynamic JDBC URLs
+ * with efficient connection pooling and lifecycle management.
  */
 @ApplicationScoped
 public class DataSourceProvider {
@@ -42,30 +44,85 @@ public class DataSourceProvider {
   @ConfigProperty(name = "quarkus.datasource.password")
   Optional<String> password;
 
+  @ConfigProperty(name = "hikari.maximum-pool-size", defaultValue = "2")
+  int maximumPoolSize;
+
+  @ConfigProperty(name = "hikari.connection-timeout", defaultValue = "30000")
+  long connectionTimeout;
+
+  @ConfigProperty(name = "hikari.idle-timeout", defaultValue = "600000")
+  long idleTimeout;
+
+  @ConfigProperty(name = "hikari.max-lifetime", defaultValue = "1800000")
+  long maxLifetime;
+
+  @ConfigProperty(name = "hikari.pool-name", defaultValue = "DatabaseConnectionPool")
+  String poolName;
+
+  private HikariDataSource dataSource;
+
   /**
-   * CDI producer method for database connections via JDBC DriverManager.
+   * Initialize HikariCP DataSource with configuration.
+   * Internal method - not exposed as CDI bean to avoid conflicts.
+   */
+  private synchronized void initializeDataSource() throws SQLException {
+    if (dataSource == null) {
+      String url = configuredUrl.orElseThrow(() ->
+          new SQLException("No database URL configured (set DB_URL environment variable)")
+      );
+
+      LOG.info("Initializing HikariCP connection pool for: " + url);
+
+      HikariConfig config = new HikariConfig();
+      config.setJdbcUrl(url);
+
+      // Set credentials if provided
+      if (username.isPresent()) {
+        config.setUsername(username.get());
+        config.setPassword(password.orElse(""));
+      }
+
+      // Configure pool settings
+      config.setMaximumPoolSize(maximumPoolSize);
+      config.setConnectionTimeout(connectionTimeout);
+      config.setIdleTimeout(idleTimeout);
+      config.setMaxLifetime(maxLifetime);
+      config.setPoolName(poolName);
+
+      // Performance and reliability settings
+      config.setAutoCommit(true);
+      config.setConnectionTestQuery(null); // Use driver-specific test query
+
+      dataSource = new HikariDataSource(config);
+      LOG.info("HikariCP connection pool initialized successfully");
+    }
+  }
+
+  /**
+   * CDI producer method for database connections from HikariCP pool.
    * <p>
-   * Relies on JDBC 4.0 automatic driver loading via ServiceLoader.
-   * Quarkus uber-JAR properly merges META-INF/services/java.sql.Driver files
-   * from all JDBC driver JARs, enabling automatic driver registration.
+   * Returns a connection from the connection pool. Connections should be
+   * properly closed by the caller to return them to the pool.
    *
-   * @return A database connection
-   * @throws SQLException if connection cannot be established
+   * @return A database connection from the pool
+   * @throws SQLException if connection cannot be obtained
    */
   @Produces
   @Dependent
   public Connection produceConnection() throws SQLException {
-    String url = configuredUrl.orElseThrow(() ->
-        new SQLException("No database URL configured (set DB_URL environment variable)")
-    );
+    initializeDataSource();
+    LOG.debug("Obtaining connection from HikariCP pool");
+    return dataSource.getConnection();
+  }
 
-    LOG.debug("Connecting to database: " + url);
-
-    // Connect with or without credentials
-    if (username.isPresent()) {
-      return DriverManager.getConnection(url, username.get(), password.orElse(""));
-    } else {
-      return DriverManager.getConnection(url);
+  /**
+   * Cleanup method to properly close the HikariCP DataSource on shutdown.
+   */
+  @PreDestroy
+  public void cleanup() {
+    if (dataSource != null && !dataSource.isClosed()) {
+      LOG.info("Closing HikariCP connection pool");
+      dataSource.close();
     }
   }
 }
