@@ -1,8 +1,10 @@
 package org.geekden.mcp.service;
 
-import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+import org.geekden.mcp.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -22,7 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  * Uses Quarkus-managed database connection.
  */
 @QuarkusTest
-class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
+@TestProfile(SqlExecutionServiceTest.Profile.class)
+class SqlExecutionServiceTest {
+
+  public static class Profile extends IsolatedDatabaseProfile {
+  }
 
   @Inject
   SqlExecutionService sqlExecutionService;
@@ -68,143 +74,166 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testExecuteSelectQuery_firstPage() throws Exception {
-    String query = "SELECT * FROM products ORDER BY id";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products ORDER BY id";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should contain headers",
-        result, allOf(containsString("id"), containsString("name"), containsString("price")));
+      assertThat("Should contain headers",
+          result, allOf(containsString("id"), containsString("name"), containsString("price")));
 
-    assertThat("Should contain first row",
-        result, containsString("Product 1"));
+      assertThat("Should contain first row",
+          result, containsString("Product 1"));
 
-    assertThat("Should show pagination footer with more available",
-        result, containsString("Page 1 (more available)"));
+      assertThat("Should show pagination footer with more available",
+          result, containsString("Page 1 (more available)"));
+    }
   }
 
   @Test
   void testExecuteSelectQuery_secondPage() throws Exception {
-    String query = "SELECT * FROM products ORDER BY id";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 2, 100);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products ORDER BY id";
+      String result = sqlExecutionService.executeQuery(conn, query, 2, 100);
 
-    assertThat("Should contain data from second page",
-        result, containsString("Product 101"));
+      assertThat("Should contain data from second page",
+          result, containsString("Product 101"));
 
-    assertThat("Should show pagination footer",
-        result, containsString("Page 2 (more available)"));
+      assertThat("Should show pagination footer",
+          result, containsString("Page 2 (more available)"));
+    }
   }
 
   @Test
   void testExecuteSelectQuery_lastPage() throws Exception {
-    String query = "SELECT * FROM products ORDER BY id";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 3, 100);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products ORDER BY id";
+      String result = sqlExecutionService.executeQuery(conn, query, 3, 100);
 
-    assertThat("Should contain data from last page",
-        result, containsString("Product 201"));
+      assertThat("Should contain data from last page",
+          result, containsString("Product 201"));
 
-    assertThat("Should show final page footer",
-        result, containsString("Page 3 (no more data)"));
+      assertThat("Should show final page footer",
+          result, containsString("Page 3 (no more data)"));
+    }
   }
 
   @Test
   void testExecuteSelectQuery_customPageSize() throws Exception {
-    String query = "SELECT * FROM products ORDER BY id";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 50);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products ORDER BY id";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 50);
 
-    assertThat("Should contain first row",
-        result, containsString("Product 1"));
+      assertThat("Should contain first row",
+          result, containsString("Product 1"));
 
-    assertThat("Should show correct page with custom page size",
-        result, containsString("Page 1 (more available)"));
+      assertThat("Should show correct page with custom page size",
+          result, containsString("Page 1 (more available)"));
+    }
   }
 
   @Test
   void testExecuteSelectQuery_emptyResult() throws Exception {
-    String query = "SELECT * FROM products WHERE id > 1000";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products WHERE id > 1000";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should indicate no results",
-        result, is("No results."));
+      assertThat("Should indicate no results",
+          result, is("No results."));
+    }
   }
 
   @Test
   void testExecuteSelectQuery_nonPageable() throws Exception {
-    // Query with existing LIMIT should not be paginated
-    String query = "SELECT * FROM products LIMIT 5";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      // Query with existing LIMIT should not be paginated
+      String query = "SELECT * FROM products LIMIT 5";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should contain data",
-        result, containsString("Product 1"));
+      assertThat("Should contain data",
+          result, containsString("Product 1"));
 
-    assertThat("Should not show pagination footer",
-        result, not(containsString("Page 1")));
+      assertThat("Should not show pagination footer",
+          result, not(containsString("Page 1")));
+    }
   }
 
   @Test
   void testExecuteInsertQuery() throws Exception {
-    String query = "INSERT INTO products (id, name, price) VALUES (999, 'New Product', 99.99)";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "INSERT INTO products (id, name, price) VALUES (999, 'New Product', 99.99)";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should show affected row count",
-        result, is("1 row affected."));
+      assertThat("Should show affected row count",
+          result, is("1 row affected."));
 
-    // Verify data was inserted
-    String selectQuery = "SELECT * FROM products WHERE id = 999";
-    String selectResult = sqlExecutionService.executeQuery(connection.get(), selectQuery, 1, 100);
-    assertThat("Should find inserted row",
-        selectResult, containsString("New Product"));
+      // Verify data was inserted
+      String selectQuery = "SELECT * FROM products WHERE id = 999";
+      String selectResult = sqlExecutionService.executeQuery(conn, selectQuery, 1, 100);
+      assertThat("Should find inserted row",
+          selectResult, containsString("New Product"));
+    }
   }
 
   @Test
   void testExecuteUpdateQuery() throws Exception {
-    String query = "UPDATE products SET price = 199.99 WHERE id <= 10";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "UPDATE products SET price = 199.99 WHERE id <= 10";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should show affected row count",
-        result, is("10 rows affected."));
+      assertThat("Should show affected row count",
+          result, is("10 rows affected."));
 
-    // Verify data was updated
-    String selectQuery = "SELECT price FROM products WHERE id = 1";
-    String selectResult = sqlExecutionService.executeQuery(connection.get(), selectQuery, 1, 100);
-    assertThat("Should show updated price",
-        selectResult, containsString("199.99"));
+      // Verify data was updated
+      String selectQuery = "SELECT price FROM products WHERE id = 1";
+      String selectResult = sqlExecutionService.executeQuery(conn, selectQuery, 1, 100);
+      assertThat("Should show updated price",
+          selectResult, containsString("199.99"));
+    }
   }
 
   @Test
   void testExecuteDeleteQuery() throws Exception {
-    String query = "DELETE FROM products WHERE id > 240";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "DELETE FROM products WHERE id > 240";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should show affected row count",
-        result, is("10 rows affected."));
+      assertThat("Should show affected row count",
+          result, is("10 rows affected."));
 
-    // Verify data was deleted
-    String selectQuery = "SELECT COUNT(*) as count FROM products";
-    String selectResult = sqlExecutionService.executeQuery(connection.get(), selectQuery, 1, 100);
-    assertThat("Should show reduced count",
-        selectResult, containsString("240"));
+      // Verify data was deleted
+      String selectQuery = "SELECT COUNT(*) as count FROM products";
+      String selectResult = sqlExecutionService.executeQuery(conn, selectQuery, 1, 100);
+      assertThat("Should show reduced count",
+          selectResult, containsString("240"));
+    }
   }
 
   @Test
   void testExecuteDeleteQuery_noRowsAffected() throws Exception {
-    String query = "DELETE FROM products WHERE id > 10000";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "DELETE FROM products WHERE id > 10000";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should indicate no rows affected",
-        result, is("No rows affected."));
+      assertThat("Should indicate no rows affected",
+          result, is("No rows affected."));
+    }
   }
 
   @Test
   void testExecuteDDL_createTable() throws Exception {
     // Clean up table if it exists from previous test run
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS test_table");
     }
 
-    String query = "CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "CREATE TABLE test_table (id INTEGER PRIMARY KEY, value TEXT)";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should show success message",
-        result, is("Command executed successfully."));
+      assertThat("Should show success message",
+          result, is("Command executed successfully."));
+    }
 
     // Verify table was created using JDBC metadata (cross-database)
     try (Connection conn = connection.get()) {
@@ -215,7 +244,8 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
     }
 
     // Clean up
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS test_table");
     }
   }
@@ -223,21 +253,26 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteDDL_dropTable() throws Exception {
     // Create a table first
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("CREATE TABLE temp_table (id INTEGER)");
     }
 
-    String query = "DROP TABLE temp_table";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "DROP TABLE temp_table";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should show success message",
-        result, is("Command executed successfully."));
+      assertThat("Should show success message",
+          result, is("Command executed successfully."));
+    }
   }
 
   @Test
   void testExecuteQuery_nullQuery() {
     Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      sqlExecutionService.executeQuery(connection.get(), null, 1, 100);
+      try (Connection conn = connection.get()) {
+        sqlExecutionService.executeQuery(conn, null, 1, 100);
+      }
     });
 
     assertThat("Should throw exception for null query",
@@ -247,7 +282,9 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_emptyQuery() {
     Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      sqlExecutionService.executeQuery(connection.get(), "", 1, 100);
+      try (Connection conn = connection.get()) {
+        sqlExecutionService.executeQuery(conn, "", 1, 100);
+      }
     });
 
     assertThat("Should throw exception for empty query",
@@ -257,7 +294,9 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_whitespaceQuery() {
     Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      sqlExecutionService.executeQuery(connection.get(), "   ", 1, 100);
+      try (Connection conn = connection.get()) {
+        sqlExecutionService.executeQuery(conn, "   ", 1, 100);
+      }
     });
 
     assertThat("Should throw exception for whitespace-only query",
@@ -267,7 +306,9 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_invalidPageNumber() {
     Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      sqlExecutionService.executeQuery(connection.get(), "SELECT * FROM products", 0, 100);
+      try (Connection conn = connection.get()) {
+        sqlExecutionService.executeQuery(conn, "SELECT * FROM products", 0, 100);
+      }
     });
 
     assertThat("Should throw exception for page 0",
@@ -277,7 +318,9 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_negativePageNumber() {
     Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      sqlExecutionService.executeQuery(connection.get(), "SELECT * FROM products", -1, 100);
+      try (Connection conn = connection.get()) {
+        sqlExecutionService.executeQuery(conn, "SELECT * FROM products", -1, 100);
+      }
     });
 
     assertThat("Should throw exception for negative page",
@@ -287,7 +330,9 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_invalidPageSize() {
     Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-      sqlExecutionService.executeQuery(connection.get(), "SELECT * FROM products", 1, 0);
+      try (Connection conn = connection.get()) {
+        sqlExecutionService.executeQuery(conn, "SELECT * FROM products", 1, 0);
+      }
     });
 
     assertThat("Should throw exception for page size 0",
@@ -297,26 +342,31 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_selectWithNulls() throws Exception {
     // Insert a row with null
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("INSERT INTO products (id, name, price) VALUES (1000, 'No Price', NULL)");
     }
 
-    String query = "SELECT * FROM products WHERE id = 1000";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 1, 100);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products WHERE id = 1000";
+      String result = sqlExecutionService.executeQuery(conn, query, 1, 100);
 
-    assertThat("Should show null placeholder",
-        result, containsString("<null>"));
+      assertThat("Should show null placeholder",
+          result, containsString("<null>"));
+    }
   }
 
   @Test
   void testExecuteQuery_defaultPageParameter() throws Exception {
-    String query = "SELECT * FROM products ORDER BY id";
-    String result = sqlExecutionService.executeQuery(connection.get(), query, 100);
+    try (Connection conn = connection.get()) {
+      String query = "SELECT * FROM products ORDER BY id";
+      String result = sqlExecutionService.executeQuery(conn, query, 100);
 
-    assertThat("Should default to page 1",
-        result, containsString("Product 1"));
+      assertThat("Should default to page 1",
+          result, containsString("Product 1"));
 
-    assertThat("Should show pagination footer",
-        result, containsString("Page 1 (more available)"));
+      assertThat("Should show pagination footer",
+          result, containsString("Page 1 (more available)"));
+    }
   }
 }

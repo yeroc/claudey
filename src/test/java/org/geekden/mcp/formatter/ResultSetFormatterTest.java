@@ -1,8 +1,10 @@
 package org.geekden.mcp.formatter;
 
-import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+import org.geekden.mcp.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +23,11 @@ import static org.hamcrest.Matchers.*;
  * Uses Quarkus-managed database connection to create real ResultSets.
  */
 @QuarkusTest
-class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
+@TestProfile(ResultSetFormatterTest.Profile.class)
+class ResultSetFormatterTest {
+
+  public static class Profile extends IsolatedDatabaseProfile {
+  }
 
   @Inject
   Instance<Connection> connection;
@@ -60,7 +66,8 @@ class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testFormatSimpleResultSet() throws Exception {
-    try (Statement stmt = connection.get().createStatement();
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT id, name FROM users ORDER BY id")) {
 
       String result = ResultSetFormatter.format(rs);
@@ -84,7 +91,8 @@ class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testFormatResultSetWithNulls() throws Exception {
-    try (Statement stmt = connection.get().createStatement();
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT name, email FROM users WHERE id = 3")) {
 
       String result = ResultSetFormatter.format(rs);
@@ -99,7 +107,8 @@ class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testFormatEmptyResultSet() throws Exception {
-    try (Statement stmt = connection.get().createStatement();
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE id > 1000")) {
 
       String result = ResultSetFormatter.format(rs);
@@ -111,7 +120,8 @@ class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testFormatWithPaginationFooter_moreAvailable() throws Exception {
-    try (Statement stmt = connection.get().createStatement();
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT id, name FROM users ORDER BY id LIMIT 3")) {
 
       // Simulate pagination: display 2 rows, but 3 were fetched (hasMore = true)
@@ -133,7 +143,8 @@ class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testFormatWithPaginationFooter_noMoreData() throws Exception {
-    try (Statement stmt = connection.get().createStatement();
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT id, name FROM users ORDER BY id LIMIT 2")) {
 
       // Display all 2 rows (no more data)
@@ -183,7 +194,8 @@ class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
 
   @Test
   void testFormatAllColumns() throws Exception {
-    try (Statement stmt = connection.get().createStatement();
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT * FROM users WHERE id = 1")) {
 
       String result = ResultSetFormatter.format(rs);
