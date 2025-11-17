@@ -142,8 +142,36 @@
         <quarkus.native.enabled>true</quarkus.native.enabled>
         <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
       </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.graalvm.buildtools</groupId>
+          <artifactId>graalvm-reachability-metadata</artifactId>
+          <version>0.11.2</version>
+          <classifier>repository</classifier>
+          <type>zip</type>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
       <build>
         <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>unpack-graalvm-metadata</id>
+                <phase>generate-resources</phase>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <configuration>
+                  <includeArtifactIds>graalvm-reachability-metadata</includeArtifactIds>
+                  <includes>org.postgresql/postgresql/**</includes>
+                  <outputDirectory>${project.build.outputDirectory}/META-INF/native-image</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
           <plugin>
             <artifactId>maven-failsafe-plugin</artifactId>
             <version>${surefire-plugin.version}</version>
