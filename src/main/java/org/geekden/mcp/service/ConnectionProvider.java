@@ -18,11 +18,8 @@ import java.util.Optional;
 /**
  * CDI producer for database connections using HikariCP connection pool.
  * <p>
- * Provides connections via HikariCP to support dynamic JDBC URLs
- * with efficient connection pooling and lifecycle management.
- * <p>
- * Uses {@link DatabaseUrlProvider} to allow URL transformation for
- * test isolation without duplicating connection pooling logic.
+ * Provides connections via HikariCP with efficient connection pooling
+ * and lifecycle management.
  */
 @ApplicationScoped
 public class ConnectionProvider {
@@ -38,9 +35,6 @@ public class ConnectionProvider {
       LOG.warn("Failed to initialize JDBC drivers", e);
     }
   }
-
-  @Inject
-  DatabaseUrlProvider urlProvider;
 
   @ConfigProperty(name = "quarkus.datasource.jdbc.url")
   Optional<String> configuredUrl;
@@ -80,16 +74,12 @@ public class ConnectionProvider {
    */
   private synchronized void initializeDataSource() throws SQLException {
     if (dataSource == null) {
-      String originalUrl = configuredUrl.orElseThrow(() ->
+      String url = configuredUrl.orElseThrow(() ->
           new SQLException("No database URL configured (set DB_URL environment variable)")
       );
 
-      // Transform URL using provider (no-op in production, test-specific in tests)
-      String url = urlProvider.transformUrl(originalUrl);
-
       LOG.info("=== Initializing HikariCP connection pool ===");
-      LOG.info("Original URL: " + sanitizeUrl(originalUrl));
-      LOG.info("Transformed URL: " + sanitizeUrl(url));
+      LOG.info("Database URL: " + sanitizeUrl(url));
       LOG.info("Pool name: " + poolName);
       LOG.info("Max pool size: " + maximumPoolSize);
 
