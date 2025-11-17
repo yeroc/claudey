@@ -1,6 +1,5 @@
 package org.geekden.mcp.formatter;
 
-import org.geekden.mcp.AbstractDatabaseIntegrationTest;
 import org.geekden.mcp.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -25,7 +24,7 @@ import static org.hamcrest.Matchers.*;
  */
 @QuarkusTest
 @TestProfile(ResultSetFormatterTest.Profile.class)
-class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
+class ResultSetFormatterTest {
 
   public static class Profile extends IsolatedDatabaseProfile {
   }

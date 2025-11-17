@@ -1,6 +1,5 @@
 package org.geekden.mcp.service;
 
-import org.geekden.mcp.AbstractDatabaseIntegrationTest;
 import org.geekden.mcp.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 @QuarkusTest
 @TestProfile(SqlExecutionServiceTest.Profile.class)
-class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
+class SqlExecutionServiceTest {
 
   public static class Profile extends IsolatedDatabaseProfile {
   }

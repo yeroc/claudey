@@ -60,6 +60,21 @@ public class ConnectionProvider {
   private HikariDataSource dataSource;
 
   /**
+   * Sanitize JDBC URL for logging by removing embedded credentials.
+   * Replaces user:password@host with ***:***@host to prevent credential leaks.
+   *
+   * @param url The JDBC URL to sanitize
+   * @return Sanitized URL safe for logging
+   */
+  private String sanitizeUrl(String url) {
+    if (url == null) {
+      return null;
+    }
+    // Match pattern: ://username:password@ and replace with ://***:***@
+    return url.replaceAll("://[^:@]+:[^@]+@", "://***:***@");
+  }
+
+  /**
    * Initialize HikariCP DataSource with configuration.
    * Internal method - not exposed as CDI bean to avoid conflicts.
    */
@@ -73,8 +88,8 @@ public class ConnectionProvider {
       String url = urlProvider.transformUrl(originalUrl);
 
       LOG.info("=== Initializing HikariCP connection pool ===");
-      LOG.info("Original URL: " + originalUrl);
-      LOG.info("Transformed URL: " + url);
+      LOG.info("Original URL: " + sanitizeUrl(originalUrl));
+      LOG.info("Transformed URL: " + sanitizeUrl(url));
       LOG.info("Pool name: " + poolName);
       LOG.info("Max pool size: " + maximumPoolSize);
 
@@ -90,10 +105,6 @@ public class ConnectionProvider {
       // Configure pool settings
       config.setMaximumPoolSize(maximumPoolSize);
       config.setPoolName(poolName);
-
-      // Performance and reliability settings
-      config.setAutoCommit(true);
-      config.setConnectionTestQuery(null); // Use driver-specific test query
 
       dataSource = new HikariDataSource(config);
       LOG.info("HikariCP connection pool initialized successfully");
@@ -114,9 +125,9 @@ public class ConnectionProvider {
   @Dependent
   public Connection produceConnection() throws SQLException {
     initializeDataSource();
-    LOG.info("Requesting connection from HikariCP pool '" + poolName + "'");
+    LOG.debug("Requesting connection from HikariCP pool '" + poolName + "'");
     Connection conn = dataSource.getConnection();
-    LOG.info("Connection obtained successfully (hashCode=" + System.identityHashCode(conn) + ")");
+    LOG.debug("Connection obtained successfully (hashCode=" + System.identityHashCode(conn) + ")");
     return conn;
   }
 

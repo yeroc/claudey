@@ -15,7 +15,7 @@ import java.util.Map;
  * {@code
  * @QuarkusTest
  * @TestProfile(MyTest.Profile.class)
- * class MyTest extends AbstractDatabaseIntegrationTest {
+ * class MyTest {
  *   public static class Profile extends IsolatedDatabaseProfile {
  *     // Empty! Logic is in the base class
  *   }

@@ -1,6 +1,5 @@
 package org.geekden.mcp;
 
-import org.geekden.mcp.AbstractDatabaseIntegrationTest;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -23,7 +22,7 @@ import static org.hamcrest.Matchers.*;
  */
 @QuarkusTest
 @TestProfile(DatabaseConnectionTest.Profile.class)
-class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
+class DatabaseConnectionTest {
 
   public static class Profile extends IsolatedDatabaseProfile {
   }
