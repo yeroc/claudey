@@ -36,8 +36,12 @@ public abstract class IsolatedDatabaseProfile implements QuarkusTestProfile {
     }
 
     String testClassName = enclosingClass.getSimpleName();
-    String databaseUrl = "jdbc:sqlite:target/" + testClassName + ".db";
+    // Add SQLite JDBC parameters for better concurrency support
+    String databaseUrl = "jdbc:sqlite:target/" + testClassName + ".db?journal_mode=WAL";
 
-    return Map.of("quarkus.datasource.jdbc.url", databaseUrl);
+    return Map.of(
+      "quarkus.datasource.jdbc.url", databaseUrl,
+      "hikari.maximum-pool-size", "1"  // SQLite works best with single connection
+    );
   }
 }
