@@ -66,6 +66,9 @@ public class ConnectionProvider {
   @ConfigProperty(name = "hikari.pool-name", defaultValue = "DatabaseConnectionPool")
   String poolName;
 
+  @ConfigProperty(name = "hikari.leak-detection-threshold", defaultValue = "0")
+  long leakDetectionThreshold;
+
   private HikariDataSource dataSource;
 
   /**
@@ -81,7 +84,11 @@ public class ConnectionProvider {
       // Transform URL using provider (no-op in production, test-specific in tests)
       String url = urlProvider.transformUrl(originalUrl);
 
-      LOG.info("Initializing HikariCP connection pool for: " + url);
+      LOG.info("=== Initializing HikariCP connection pool ===");
+      LOG.info("Original URL: " + originalUrl);
+      LOG.info("Transformed URL: " + url);
+      LOG.info("Pool name: " + poolName);
+      LOG.info("Max pool size: " + maximumPoolSize);
 
       HikariConfig config = new HikariConfig();
       config.setJdbcUrl(url);
@@ -99,12 +106,19 @@ public class ConnectionProvider {
       config.setMaxLifetime(maxLifetime);
       config.setPoolName(poolName);
 
+      // Leak detection (0 = disabled, >0 = log stack trace if connection held longer than threshold)
+      if (leakDetectionThreshold > 0) {
+        config.setLeakDetectionThreshold(leakDetectionThreshold);
+        LOG.info("Leak detection threshold: " + leakDetectionThreshold + "ms");
+      }
+
       // Performance and reliability settings
       config.setAutoCommit(true);
       config.setConnectionTestQuery(null); // Use driver-specific test query
 
       dataSource = new HikariDataSource(config);
       LOG.info("HikariCP connection pool initialized successfully");
+      LOG.info("==========================================");
     }
   }
 
@@ -121,8 +135,10 @@ public class ConnectionProvider {
   @Dependent
   public Connection produceConnection() throws SQLException {
     initializeDataSource();
-    LOG.debug("Obtaining connection from HikariCP pool");
-    return dataSource.getConnection();
+    LOG.info("Requesting connection from HikariCP pool '" + poolName + "'");
+    Connection conn = dataSource.getConnection();
+    LOG.info("Connection obtained successfully (hashCode=" + System.identityHashCode(conn) + ")");
+    return conn;
   }
 
   /**
