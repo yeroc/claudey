@@ -6,6 +6,7 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
@@ -19,11 +20,14 @@ import java.util.Optional;
  * <p>
  * Provides connections via HikariCP to support dynamic JDBC URLs
  * with efficient connection pooling and lifecycle management.
+ * <p>
+ * Uses {@link DatabaseUrlProvider} to allow URL transformation for
+ * test isolation without duplicating connection pooling logic.
  */
 @ApplicationScoped
-public class DataSourceProvider {
+public class ConnectionProvider {
 
-  private static final Logger LOG = Logger.getLogger(DataSourceProvider.class);
+  private static final Logger LOG = Logger.getLogger(ConnectionProvider.class);
 
   static {
     // Eagerly initialize DriverManager to trigger JDBC 4.0 ServiceLoader
@@ -34,6 +38,9 @@ public class DataSourceProvider {
       LOG.warn("Failed to initialize JDBC drivers", e);
     }
   }
+
+  @Inject
+  DatabaseUrlProvider urlProvider;
 
   @ConfigProperty(name = "quarkus.datasource.jdbc.url")
   Optional<String> configuredUrl;
@@ -67,9 +74,12 @@ public class DataSourceProvider {
    */
   private synchronized void initializeDataSource() throws SQLException {
     if (dataSource == null) {
-      String url = configuredUrl.orElseThrow(() ->
+      String originalUrl = configuredUrl.orElseThrow(() ->
           new SQLException("No database URL configured (set DB_URL environment variable)")
       );
+
+      // Transform URL using provider (no-op in production, test-specific in tests)
+      String url = urlProvider.transformUrl(originalUrl);
 
       LOG.info("Initializing HikariCP connection pool for: " + url);
 
