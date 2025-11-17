@@ -45,12 +45,6 @@
       <groupId>io.quarkiverse.jdbc</groupId>
       <artifactId>quarkus-jdbc-sqlite</artifactId>
       <version>3.0.11</version>
-      <exclusions>
-        <exclusion>
-          <groupId>io.quarkus</groupId>
-          <artifactId>quarkus-agroal</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.quarkiverse.mcp</groupId>
@@ -64,12 +58,6 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jdbc-postgresql</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>io.quarkus</groupId>
-          <artifactId>quarkus-agroal</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
