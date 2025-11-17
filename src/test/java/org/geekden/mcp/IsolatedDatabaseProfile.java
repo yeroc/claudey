@@ -32,7 +32,7 @@ public abstract class IsolatedDatabaseProfile implements QuarkusTestProfile {
 
     // If DB_URL is set and not SQLite, use it as-is (e.g., for PostgreSQL testing)
     if (dbUrl != null && !dbUrl.startsWith("jdbc:sqlite:")) {
-      return Map.of("quarkus.datasource.jdbc.url", dbUrl);
+      return Map.of("db.jdbc.url", dbUrl);
     }
 
     // For SQLite (default), create isolated database per test class
@@ -47,7 +47,7 @@ public abstract class IsolatedDatabaseProfile implements QuarkusTestProfile {
     String databaseUrl = "jdbc:sqlite:target/" + testClassName + ".db";
 
     return Map.of(
-      "quarkus.datasource.jdbc.url", databaseUrl
+      "db.jdbc.url", databaseUrl
     );
   }
 }

@@ -36,13 +36,13 @@ public class ConnectionProvider {
     }
   }
 
-  @ConfigProperty(name = "quarkus.datasource.jdbc.url")
+  @ConfigProperty(name = "db.jdbc.url")
   Optional<String> configuredUrl;
 
-  @ConfigProperty(name = "quarkus.datasource.username")
+  @ConfigProperty(name = "db.username")
   Optional<String> username;
 
-  @ConfigProperty(name = "quarkus.datasource.password")
+  @ConfigProperty(name = "db.password")
   Optional<String> password;
 
   @ConfigProperty(name = "hikari.maximum-pool-size", defaultValue = "2")
