@@ -203,7 +203,8 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteDDL_createTable() throws Exception {
     // Clean up table if it exists from previous test run
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS test_table");
     }
 
@@ -222,7 +223,8 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
     }
 
     // Clean up
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS test_table");
     }
   }
@@ -230,7 +232,8 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteDDL_dropTable() throws Exception {
     // Create a table first
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("CREATE TABLE temp_table (id INTEGER)");
     }
 
@@ -304,7 +307,8 @@ class SqlExecutionServiceTest extends AbstractDatabaseIntegrationTest {
   @Test
   void testExecuteQuery_selectWithNulls() throws Exception {
     // Insert a row with null
-    try (Statement stmt = connection.get().createStatement()) {
+    try (Connection conn = connection.get();
+         Statement stmt = conn.createStatement()) {
       stmt.execute("INSERT INTO products (id, name, price) VALUES (1000, 'No Price', NULL)");
     }
 
