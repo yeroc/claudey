@@ -54,20 +54,8 @@ public class ConnectionProvider {
   @ConfigProperty(name = "hikari.maximum-pool-size", defaultValue = "2")
   int maximumPoolSize;
 
-  @ConfigProperty(name = "hikari.connection-timeout", defaultValue = "30000")
-  long connectionTimeout;
-
-  @ConfigProperty(name = "hikari.idle-timeout", defaultValue = "600000")
-  long idleTimeout;
-
-  @ConfigProperty(name = "hikari.max-lifetime", defaultValue = "1800000")
-  long maxLifetime;
-
   @ConfigProperty(name = "hikari.pool-name", defaultValue = "DatabaseConnectionPool")
   String poolName;
-
-  @ConfigProperty(name = "hikari.leak-detection-threshold", defaultValue = "0")
-  long leakDetectionThreshold;
 
   private HikariDataSource dataSource;
 
@@ -101,16 +89,7 @@ public class ConnectionProvider {
 
       // Configure pool settings
       config.setMaximumPoolSize(maximumPoolSize);
-      config.setConnectionTimeout(connectionTimeout);
-      config.setIdleTimeout(idleTimeout);
-      config.setMaxLifetime(maxLifetime);
       config.setPoolName(poolName);
-
-      // Leak detection (0 = disabled, >0 = log stack trace if connection held longer than threshold)
-      if (leakDetectionThreshold > 0) {
-        config.setLeakDetectionThreshold(leakDetectionThreshold);
-        LOG.info("Leak detection threshold: " + leakDetectionThreshold + "ms");
-      }
 
       // Performance and reliability settings
       config.setAutoCommit(true);

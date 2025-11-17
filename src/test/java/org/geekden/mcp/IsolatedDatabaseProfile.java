@@ -27,7 +27,15 @@ public abstract class IsolatedDatabaseProfile implements QuarkusTestProfile {
 
   @Override
   public Map<String, String> getConfigOverrides() {
-    // Dynamically derive database filename from enclosing test class
+    // Check if DB_URL environment variable is set
+    String dbUrl = System.getenv("DB_URL");
+
+    // If DB_URL is set and not SQLite, use it as-is (e.g., for PostgreSQL testing)
+    if (dbUrl != null && !dbUrl.startsWith("jdbc:sqlite:")) {
+      return Map.of("quarkus.datasource.jdbc.url", dbUrl);
+    }
+
+    // For SQLite (default), create isolated database per test class
     Class<?> enclosingClass = this.getClass().getEnclosingClass();
     if (enclosingClass == null) {
       throw new IllegalStateException(
@@ -36,8 +44,7 @@ public abstract class IsolatedDatabaseProfile implements QuarkusTestProfile {
     }
 
     String testClassName = enclosingClass.getSimpleName();
-    // Add SQLite JDBC parameters for better concurrency support
-    String databaseUrl = "jdbc:sqlite:target/" + testClassName + ".db?journal_mode=WAL";
+    String databaseUrl = "jdbc:sqlite:target/" + testClassName + ".db";
 
     return Map.of(
       "quarkus.datasource.jdbc.url", databaseUrl
