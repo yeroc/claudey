@@ -1,8 +1,11 @@
 package org.geekden.mcp.formatter;
 
 import org.geekden.mcp.AbstractDatabaseIntegrationTest;
+import org.geekden.mcp.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.AfterEach;
@@ -21,7 +24,11 @@ import static org.hamcrest.Matchers.*;
  * Uses Quarkus-managed database connection to create real ResultSets.
  */
 @QuarkusTest
+@TestProfile(ResultSetFormatterTest.Profile.class)
 class ResultSetFormatterTest extends AbstractDatabaseIntegrationTest {
+
+  public static class Profile extends IsolatedDatabaseProfile {
+  }
 
   @Inject
   Instance<Connection> connection;

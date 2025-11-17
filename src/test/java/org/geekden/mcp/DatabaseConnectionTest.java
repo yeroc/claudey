@@ -3,6 +3,8 @@ package org.geekden.mcp;
 import org.geekden.mcp.AbstractDatabaseIntegrationTest;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import org.geekden.mcp.config.DatabaseConfig;
@@ -20,7 +22,11 @@ import static org.hamcrest.Matchers.*;
  * Only runs if database is configured via environment variables.
  */
 @QuarkusTest
+@TestProfile(DatabaseConnectionTest.Profile.class)
 class DatabaseConnectionTest extends AbstractDatabaseIntegrationTest {
+
+  public static class Profile extends IsolatedDatabaseProfile {
+  }
 
   @Inject
   Instance<Connection> connectionInstance;
