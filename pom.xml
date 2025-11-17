@@ -161,13 +161,13 @@
             <executions>
               <execution>
                 <id>unpack-graalvm-metadata</id>
-                <phase>generate-resources</phase>
+                <phase>process-classes</phase>
                 <goals>
                   <goal>unpack-dependencies</goal>
                 </goals>
                 <configuration>
                   <includeArtifactIds>graalvm-reachability-metadata</includeArtifactIds>
-                  <includes>org.postgresql/postgresql/**</includes>
+                  <includes>org.postgresql/postgresql/**,com.zaxxer/HikariCP/**</includes>
                   <outputDirectory>${project.build.outputDirectory}/META-INF/native-image</outputDirectory>
                 </configuration>
               </execution>
