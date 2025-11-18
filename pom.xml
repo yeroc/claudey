@@ -141,7 +141,6 @@
       <properties>
         <quarkus.native.enabled>true</quarkus.native.enabled>
         <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
-        <quarkus.native.additional-build-args>--initialize-at-run-time=org.postgresql.sspi.SSPIClient</quarkus.native.additional-build-args>
       </properties>
       <dependencies>
         <dependency>
