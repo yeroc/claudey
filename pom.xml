@@ -141,7 +141,9 @@
       <properties>
         <quarkus.native.enabled>true</quarkus.native.enabled>
         <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
-        <quarkus.native.additional-build-args>--initialize-at-run-time=org.postgresql.sspi.SSPIClient</quarkus.native.additional-build-args>
+        <!-- Note: PostgreSQL SSPI runtime initialization is handled via
+             src/main/resources/META-INF/native-image/org.postgresql/postgresql/native-image.properties
+             This supplements the incomplete GraalVM metadata repository. -->
       </properties>
       <dependencies>
         <dependency>
