@@ -35,7 +35,7 @@
   </dependencyManagement>
   
   <dependencies>
-    <!-- Compile Dependencies -->
+    <!-- Compile Dependencies (sorted by groupId, then artifactId) -->
     <dependency>
       <groupId>com.zaxxer</groupId>
       <artifactId>HikariCP</artifactId>
@@ -54,6 +54,8 @@
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-picocli</artifactId>
     </dependency>
+
+    <!-- Runtime Dependencies (sorted by groupId, then artifactId) -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
@@ -67,7 +69,7 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Test Dependencies -->
+    <!-- Test Dependencies (sorted by groupId, then artifactId) -->
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-jacoco</artifactId>
