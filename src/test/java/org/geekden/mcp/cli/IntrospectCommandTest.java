@@ -3,7 +3,6 @@ package org.geekden.mcp.cli;
 import org.geekden.mcp.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +49,7 @@ class IntrospectCommandTest {
     assertThat("Should succeed with exit code 0", exitCode, is(0));
 
     String stdout = output.getStdout();
-    assertThat("Should contain output", stdout, not(isEmptyOrNullString()));
+    assertThat("Should contain output", stdout, not(emptyOrNullString()));
   }
 
   @Test
