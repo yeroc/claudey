@@ -1,8 +1,8 @@
-package org.geekden.mcp.service;
+package org.geekden.mcp.database.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import org.geekden.mcp.formatter.ResultSetFormatter;
-import org.geekden.mcp.pagination.PaginationHandler;
+import org.geekden.mcp.database.formatter.ResultSetFormatter;
+import org.geekden.mcp.database.service.PaginationHandler;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

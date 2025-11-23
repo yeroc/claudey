@@ -1,4 +1,4 @@
-package org.geekden.mcp.formatter;
+package org.geekden.mcp.database.formatter;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;

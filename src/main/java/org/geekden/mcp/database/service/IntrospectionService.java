@@ -1,7 +1,7 @@
-package org.geekden.mcp.service;
+package org.geekden.mcp.database.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
-import org.geekden.mcp.formatter.TableFormatter;
+import org.geekden.mcp.database.formatter.TableFormatter;
 
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;

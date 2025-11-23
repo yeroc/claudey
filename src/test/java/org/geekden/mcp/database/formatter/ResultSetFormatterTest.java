@@ -1,4 +1,4 @@
-package org.geekden.mcp.formatter;
+package org.geekden.mcp.database.formatter;
 
 import org.geekden.mcp.IsolatedDatabaseProfile;
 

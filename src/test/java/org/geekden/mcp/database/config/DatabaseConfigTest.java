@@ -1,4 +1,4 @@
-package org.geekden.mcp.config;
+package org.geekden.mcp.database.config;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;

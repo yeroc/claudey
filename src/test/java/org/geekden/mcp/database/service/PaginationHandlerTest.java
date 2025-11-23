@@ -1,4 +1,4 @@
-package org.geekden.mcp.pagination;
+package org.geekden.mcp.database.service;
 
 import org.junit.jupiter.api.Test;
 

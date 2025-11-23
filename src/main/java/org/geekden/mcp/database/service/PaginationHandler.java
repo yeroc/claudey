@@ -1,4 +1,4 @@
-package org.geekden.mcp.pagination;
+package org.geekden.mcp.database.service;
 
 /**
  * Handles pagination logic for SQL queries.
