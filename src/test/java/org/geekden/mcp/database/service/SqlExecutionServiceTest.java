@@ -1,4 +1,4 @@
-package org.geekden.mcp.service;
+package org.geekden.mcp.database.service;
 
 import org.geekden.mcp.IsolatedDatabaseProfile;
 

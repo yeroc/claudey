@@ -1,4 +1,4 @@
-package org.geekden.mcp.config;
+package org.geekden.mcp.database.config;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;

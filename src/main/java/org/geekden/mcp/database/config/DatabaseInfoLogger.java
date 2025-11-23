@@ -1,10 +1,11 @@
-package org.geekden.mcp.config;
+package org.geekden.mcp.database.config;
 
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
+import org.geekden.mcp.database.config.DatabaseConfig;
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;

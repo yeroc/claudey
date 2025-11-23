@@ -2,8 +2,8 @@ package org.geekden.mcp.cli;
 
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import org.geekden.mcp.config.DatabaseConfig;
-import org.geekden.mcp.service.SqlExecutionService;
+import org.geekden.mcp.database.config.DatabaseConfig;
+import org.geekden.mcp.database.service.SqlExecutionService;
 import org.jboss.logging.Logger;
 import picocli.CommandLine;
 
