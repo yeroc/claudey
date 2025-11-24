@@ -6,9 +6,9 @@ import jakarta.annotation.PreDestroy;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Inject;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.geekden.mcp.database.config.DatabaseConfig;
+
 import org.jboss.logging.Logger;
 
 import java.sql.Connection;
