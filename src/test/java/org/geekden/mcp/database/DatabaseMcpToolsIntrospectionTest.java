@@ -1,10 +1,11 @@
-package org.geekden.mcp;
+package org.geekden.mcp.database;
 
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
+
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
+
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

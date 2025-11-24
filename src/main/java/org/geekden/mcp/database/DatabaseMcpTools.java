@@ -1,4 +1,4 @@
-package org.geekden.mcp;
+package org.geekden.mcp.database;
 
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;

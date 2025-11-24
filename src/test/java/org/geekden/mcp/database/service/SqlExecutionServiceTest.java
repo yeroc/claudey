@@ -1,8 +1,9 @@
 package org.geekden.mcp.database.service;
 
-import org.geekden.mcp.IsolatedDatabaseProfile;
-
 import io.quarkus.test.junit.QuarkusTest;
+
+import org.geekden.mcp.database.IsolatedDatabaseProfile;
+
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;

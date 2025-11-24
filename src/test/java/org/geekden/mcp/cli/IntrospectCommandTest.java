@@ -1,6 +1,6 @@
 package org.geekden.mcp.cli;
 
-import org.geekden.mcp.IsolatedDatabaseProfile;
+import org.geekden.mcp.database.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

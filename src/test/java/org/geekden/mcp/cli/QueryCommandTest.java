@@ -1,12 +1,12 @@
 package org.geekden.mcp.cli;
 
-import org.geekden.mcp.IsolatedDatabaseProfile;
+import org.geekden.mcp.database.IsolatedDatabaseProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
+
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import org.geekden.mcp.DatabaseMcpTools;
+import org.geekden.mcp.database.DatabaseMcpTools;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
