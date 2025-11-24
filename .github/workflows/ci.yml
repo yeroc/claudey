@@ -68,7 +68,7 @@ jobs:
         if: always()
         with:
           name: test-results
-          path: target/surefire-reports/
+          path: database/target/surefire-reports/
           retention-days: 7
 
       - name: Upload coverage report
@@ -76,7 +76,7 @@ jobs:
         if: always()
         with:
           name: coverage-report
-          path: target/jacoco-report/
+          path: database/target/jacoco-report/
           retention-days: 7
           if-no-files-found: ignore
 
@@ -110,7 +110,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mcp-database-server-jar
-          path: target/mcp-database-server-*.jar
+          path: database/target/mcp-database-server-*.jar
           retention-days: 30
 
   build-native:
@@ -168,7 +168,7 @@ jobs:
         id: find_binary
         run: |
           # Find the native binary (exclude .jar, .json, .txt files)
-          BINARY=$(find target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
+          BINARY=$(find database/target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
           if [ -z "$BINARY" ]; then
             echo "Native binary not found!"
             exit 1

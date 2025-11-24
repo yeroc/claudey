@@ -19,7 +19,7 @@ We aim to replicate this functionality within the `claudey` Quarkus MCP server.
 
 ### Architecture
 - **Language**: Java 21 (Quarkus).
-- **Integration**: Module within existing `claudey` server.
+- **Integration**: Standalone MCP Server (separate Maven module).
 
 ### Key Technical Decisions (To Be Discussed)
 
@@ -325,68 +325,50 @@ Each `.md` journal entry has a corresponding `.embedding` file (JSON).
 The current codebase follows this pattern:
 ```
 src/main/java/org/geekden/mcp/
-├── DatabaseMcpTools.java          # MCP tool definitions (@Tool methods)
-├── service/
-│   ├── IntrospectionService.java  # Business logic for introspection
-│   └── SqlExecutionService.java   # Business logic for SQL execution
-├── config/
-│   └── DatabaseConfig.java        # Configuration management
-└── formatter/
-    └── TableFormatter.java        # Output formatting
+├── cli/                           # CLI commands
+├── database/                      # Database domain & MCP tools
+│   ├── DatabaseMcpTools.java      # MCP tool definitions
+│   ├── config/                    # Database configuration
+│   ├── formatter/                 # Output formatting
+│   ├── provider/                  # Connection provider
+│   └── service/                   # Business logic (SQL execution, introspection)
+└── Main.java                      # Application entry point
 ```
 
 **Pattern**: 
-- `DatabaseMcpTools` = MCP interface layer (thin, delegates to services)
-- Services = Business logic (injected via CDI)
-- Config = Environment-based configuration
-- Formatters = Output presentation
+- `database/` package encapsulates all database-related functionality.
+- `DatabaseMcpTools` resides within the domain package.
+- Services are injected via CDI.
 
 ### Proposed Refactoring + Journal Integration
 
-**Goal**: Consistent package structure where both database and journal are domain packages.
+**Goal**: Separate the application into multiple deployable MCP servers using a multi-module Maven project.
 
 **Refactored Structure**:
 ```
-src/main/java/org/geekden/
-├── mcp/
-│   ├── DatabaseMcpTools.java      # Existing (stays in mcp/)
-│   └── JournalMcpTools.java       # NEW: Journal MCP interface
-├── database/                       # REFACTORED: Move existing database code here
-│   ├── service/
-│   │   ├── IntrospectionService.java  # MOVED from mcp/service/
-│   │   └── SqlExecutionService.java   # MOVED from mcp/service/
-│   ├── config/
-│   │   └── DatabaseConfig.java        # MOVED from mcp/config/
-│   ├── formatter/
-│   │   └── TableFormatter.java        # MOVED from mcp/formatter/
-│   └── provider/
-│       └── ConnectionProvider.java    # MOVED from mcp/service/
-└── journal/                        # NEW: Journal domain package
-    ├── service/
-    │   ├── JournalWriteService.java
-    │   ├── JournalSearchService.java
-    │   └── EmbeddingService.java
-    ├── model/
-    │   ├── JournalEntry.java
-    │   └── EmbeddingData.java
-    ├── config/
-    │   └── JournalConfig.java
-    └── formatter/
-        └── JournalFormatter.java
+claudey/
+├── pom.xml                        # Parent POM (manages dependencies)
+├── core/                          # Shared utilities (if needed)
+├── database/                      # EXISTING: Database MCP Server
+│   └── src/main/java/org/geekden/
+│       └── mcp/
+│           └── database/          # Database domain logic & Tools
+└── journal/                       # NEW: Journal MCP Server
+    └── src/main/java/org/geekden/
+        └── mcp/
+            └── journal/           # Journal domain logic & Tools
 ```
 
 **Rationale**:
-- `mcp/` package = **MCP interface layer only** (tools that expose functionality)
-- `database/` package = **Database domain** (all database-related logic)
-- `journal/` package = **Journal domain** (all journal-related logic)
-- Clean separation: MCP tools delegate to domain services
+- **Isolation**: Users can run `database` and `journal` as separate processes.
+- **Scalability**: Multiple instances of `database` can be configured for different databases without duplicating the journal tools.
+- **Clean Dependencies**: Each module only pulls in what it needs (e.g., Journal needs LangChain4j, Database needs JDBC drivers).
 
 **Migration Path**:
-1. Create `org.geekden.database` package
-2. Move existing services/config/formatters
-3. Update imports in `DatabaseMcpTools`
-4. Add `org.geekden.journal` package alongside
-5. Both domains follow identical structure
+1.  **Parent POM**: Convert root `pom.xml` to `pom` packaging.
+2.  **Database Module**: Move existing source code to `database` module.
+3.  **Journal Module**: Create new `journal` module.
+4.  **Build**: Ensure `mvn package` builds both servers.
 
 ### Component Responsibilities
 
