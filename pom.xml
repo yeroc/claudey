@@ -74,6 +74,8 @@
         <groupId>org.graalvm.buildtools</groupId>
         <artifactId>graalvm-reachability-metadata</artifactId>
         <version>${graalvm-metadata.version}</version>
+        <classifier>repository</classifier>
+        <type>zip</type>
       </dependency>
     </dependencies>
   </dependencyManagement>
