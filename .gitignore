@@ -1,9 +1,7 @@
 target/
 
 # Build artifacts
-META-INF/
-# Exception: Include native-image metadata in source tree
-!src/main/resources/META-INF/
+
 
 # Test output files
 *.log

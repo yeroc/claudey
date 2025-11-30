@@ -97,7 +97,7 @@ jobs:
 
       - name: Generate JAR checksum
         run: |
-          cd target
+          cd database/target
           sha256sum mcp-database-server-${{ needs.test.outputs.version }}.jar > mcp-database-server-${{ needs.test.outputs.version }}.jar.sha256
 
       - name: Upload JAR artifact
@@ -105,8 +105,8 @@ jobs:
         with:
           name: jar
           path: |
-            target/mcp-database-server-*.jar
-            target/mcp-database-server-*.jar.sha256
+            database/target/mcp-database-server-*.jar
+            database/target/mcp-database-server-*.jar.sha256
 
   build-native:
     name: Build Native Binary (${{ matrix.platform }})
@@ -151,7 +151,7 @@ jobs:
         id: find_binary
         run: |
           # Find the native binary (exclude .jar, .json, .txt files)
-          BINARY=$(find target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
+          BINARY=$(find database/target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
           if [ -z "$BINARY" ]; then
             echo "Native binary not found!"
             exit 1
@@ -187,10 +187,10 @@ jobs:
             sha256sum "$RENAMED" > "${RENAMED}.sha256"
           fi
 
-          # Move to target root for artifact upload
-          if [ "$BINARY_DIR" != "target" ]; then
-            mv "$RENAMED" target/
-            mv "${RENAMED}.sha256" target/
+          # Move to database/target root for artifact upload
+          if [ "$BINARY_DIR" != "database/target" ]; then
+            mv "$RENAMED" database/target/
+            mv "${RENAMED}.sha256" database/target/
           fi
 
       - name: Upload native binary artifact
@@ -198,8 +198,8 @@ jobs:
         with:
           name: native-${{ matrix.platform }}
           path: |
-            target/mcp-database-server-*-${{ matrix.platform }}
-            target/mcp-database-server-*-${{ matrix.platform }}.sha256
+            database/target/mcp-database-server-*-${{ matrix.platform }}
+            database/target/mcp-database-server-*-${{ matrix.platform }}.sha256
 
   create-release:
     name: Create GitHub Release
