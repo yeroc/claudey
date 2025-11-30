@@ -1137,6 +1137,8 @@ Expect 5-20ms per call without multiplexing, <1ms with multiplexing for subseque
 
 **[ClaudeCage](https://github.com/PACHAKUTlQ/ClaudeCage)** - Takes a different approach to isolating Claude Code using containerization and security boundaries. Worth exploring for alternative perspectives on the same problem.
 
+**[mcp_command_server](https://github.com/copyleftdev/mcp_command_server)** - An MCP server implementation for executing shell commands. Provides a practical example of exposing command execution capabilities through the Model Context Protocol.
+
 ## Conclusion
 
 This approach provides a practical balance for autonomous Claude Code operation:
