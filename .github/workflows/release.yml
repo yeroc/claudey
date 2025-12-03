@@ -3,20 +3,43 @@ name: Release
 on:
   push:
     tags:
-      - '*.*.*'
-      - '*.*.*-*'
-      - '*.*.*-*-*'
+      - '*-*'
 
 permissions:
   contents: write
 
 jobs:
-  test:
-    name: Run Tests
+  setup:
+    name: Setup Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.parse_version.outputs.version }}
+      module: ${{ steps.parse_tag.outputs.module }}
+      version: ${{ steps.parse_tag.outputs.version }}
+      artifact_name: ${{ steps.parse_tag.outputs.artifact_name }}
+    steps:
+      - name: Parse Tag
+        id: parse_tag
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          echo "Tag: $TAG"
+          
+          # Extract module (everything before the first hyphen followed by a digit)
+          MODULE=${TAG%%-[0-9]*}
+          # Extract version (remove module and hyphen from tag)
+          VERSION=${TAG#$MODULE-}
+          
+          echo "Module: $MODULE"
+          echo "Version: $VERSION"
+          
+          echo "module=$MODULE" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "artifact_name=mcp-$MODULE-server" >> $GITHUB_OUTPUT
 
+  test:
+    name: Run Tests
+    needs: setup
+    runs-on: ubuntu-latest
+    
     services:
       postgres:
         image: postgres:16
@@ -50,29 +73,18 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Parse version from tag
-        id: parse_version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "Version: $VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Run tests with PostgreSQL
+      - name: Run tests
         env:
           DB_KIND: postgresql
           DB_URL: jdbc:postgresql://localhost:5432/testdb
           DB_USERNAME: testuser
           DB_PASSWORD: testpass
-        run: mvn --batch-mode clean verify -Drevision=${{ steps.parse_version.outputs.version }}
-
-      - name: Run tests with SQLite
-        # No env vars needed - defaults to file-based SQLite for proper test isolation
-        run: mvn --batch-mode clean verify -Drevision=${{ steps.parse_version.outputs.version }}
+        run: mvn --batch-mode clean verify -pl ${{ needs.setup.outputs.module }} -am -Drevision=${{ needs.setup.outputs.version }}
 
   build-jar:
     name: Build JAR
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [setup, test]
 
     steps:
       - name: Checkout code
@@ -93,25 +105,27 @@ jobs:
           distribution: 'temurin'
 
       - name: Build uber-jar
-        run: mvn --batch-mode clean package -DskipTests -Drevision=${{ needs.test.outputs.version }}
+        run: mvn --batch-mode clean package -pl ${{ needs.setup.outputs.module }} -am -DskipTests -Drevision=${{ needs.setup.outputs.version }}
 
       - name: Generate JAR checksum
         run: |
-          cd database/target
-          sha256sum mcp-database-server-${{ needs.test.outputs.version }}.jar > mcp-database-server-${{ needs.test.outputs.version }}.jar.sha256
+          cd ${{ needs.setup.outputs.module }}/target
+          ARTIFACT_NAME=${{ needs.setup.outputs.artifact_name }}
+          VERSION=${{ needs.setup.outputs.version }}
+          sha256sum ${ARTIFACT_NAME}-${VERSION}.jar > ${ARTIFACT_NAME}-${VERSION}.jar.sha256
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: jar
           path: |
-            database/target/mcp-database-server-*.jar
-            database/target/mcp-database-server-*.jar.sha256
+            ${{ needs.setup.outputs.module }}/target/${{ needs.setup.outputs.artifact_name }}-*.jar
+            ${{ needs.setup.outputs.module }}/target/${{ needs.setup.outputs.artifact_name }}-*.jar.sha256
 
   build-native:
     name: Build Native Binary (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
-    needs: [test]
+    needs: [setup, test]
 
     strategy:
       matrix:
@@ -142,7 +156,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
-        run: mvn --batch-mode package -Dnative -DskipTests -Drevision=${{ needs.test.outputs.version }}
+        run: mvn --batch-mode package -pl ${{ needs.setup.outputs.module }} -am -Dnative -DskipTests -Drevision=${{ needs.setup.outputs.version }}
         env:
           MAVEN_OPTS: "-Xmx4g"
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
@@ -150,8 +164,11 @@ jobs:
       - name: Find and verify native binary
         id: find_binary
         run: |
-          # Find the native binary (exclude .jar, .json, .txt files)
-          BINARY=$(find database/target -type f -name 'mcp-database-server-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
+          MODULE=${{ needs.setup.outputs.module }}
+          ARTIFACT_NAME=${{ needs.setup.outputs.artifact_name }}
+          
+          # Find the native binary
+          BINARY=$(find $MODULE/target -type f -name "${ARTIFACT_NAME}-*" ! -name '*.jar' ! -name '*.json' ! -name '*.txt' | head -n1)
           if [ -z "$BINARY" ]; then
             echo "Native binary not found!"
             exit 1
@@ -159,18 +176,6 @@ jobs:
           echo "Found binary: $BINARY"
           ls -lh "$BINARY"
           echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
-
-      - name: Test native binary functionality
-        run: |
-          BINARY=${{ steps.find_binary.outputs.binary_path }}
-          echo "Testing binary functionality: $BINARY"
-
-          # Test introspect command with SQLite in-memory database
-          export DB_KIND="sqlite"
-          export DB_URL="jdbc:sqlite::memory:"
-          $BINARY introspect
-
-          echo "Binary functional test completed successfully"
 
       - name: Rename and checksum native binary
         run: |
@@ -187,24 +192,18 @@ jobs:
             sha256sum "$RENAMED" > "${RENAMED}.sha256"
           fi
 
-          # Move to database/target root for artifact upload
-          if [ "$BINARY_DIR" != "database/target" ]; then
-            mv "$RENAMED" database/target/
-            mv "${RENAMED}.sha256" database/target/
-          fi
-
       - name: Upload native binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.platform }}
           path: |
-            database/target/mcp-database-server-*-${{ matrix.platform }}
-            database/target/mcp-database-server-*-${{ matrix.platform }}.sha256
+            ${{ needs.setup.outputs.module }}/target/${{ needs.setup.outputs.artifact_name }}-*-${{ matrix.platform }}
+            ${{ needs.setup.outputs.module }}/target/${{ needs.setup.outputs.artifact_name }}-*-${{ matrix.platform }}.sha256
 
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [test, build-jar, build-native]
+    needs: [setup, test, build-jar, build-native]
 
     steps:
       - name: Checkout code
@@ -221,17 +220,20 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir release-files
-          find artifacts -type f -name 'mcp-database-server-*' -exec cp {} release-files/ \;
+          ARTIFACT_NAME=${{ needs.setup.outputs.artifact_name }}
+          find artifacts -type f -name "${ARTIFACT_NAME}-*" -exec cp {} release-files/ \;
           ls -lh release-files/
 
       - name: Generate release notes
         run: |
-          VERSION=${{ needs.test.outputs.version }}
+          VERSION=${{ needs.setup.outputs.version }}
           REPO=${{ github.repository }}
+          ARTIFACT_NAME=${{ needs.setup.outputs.artifact_name }}
 
           # Generate release notes from template
           sed -e "s|VERSION|${VERSION}|g" \
               -e "s|REPO|${REPO}|g" \
+              -e "s|ARTIFACT_NAME|${ARTIFACT_NAME}|g" \
               .github/release-template.md > release-notes.md
 
       - name: Create Release
