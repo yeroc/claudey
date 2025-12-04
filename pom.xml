@@ -28,7 +28,7 @@
     <postgresql.version>42.7.8</postgresql.version>
     <sqlite.version>3.46.1.3</sqlite.version>
     <system-stubs.version>2.1.8</system-stubs.version>
-    <graalvm-metadata.version>0.11.2</graalvm-metadata.version>
+    <graalvm-metadata.version>0.11.3</graalvm-metadata.version>
   </properties>
 
   <dependencyManagement>
