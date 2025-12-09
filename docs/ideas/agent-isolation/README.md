@@ -24,9 +24,22 @@ Create a "split-brain" architecture:
 
 ---
 
-## The Solution
+## The Solution: "Claudey Bridge"
 
-Two components working together:
+**Phased Approach:**
+1. **Phase 1 (Now):** Use **cco** (Claude Code Orchestrator) to handle the sandboxing and isolation layers.
+2. **Phase 2 (Future):** Replace cco with a native `cs` launcher for deeper integration.
+
+**Core Components:**
+1.  **Sandbox Isolation (via `cco`):**
+    -   Platform-native: Uses `bubblewrap` (Linux) or `sandbox-exec` (macOS)
+    -   Restricts filesystem access (read-only by default)
+    -   Hides sensitive directories (SSH keys, cloud creds)
+
+2.  **Privileged Bridge (The New Component):**
+    -   A native process running on the host
+    -   Exposes an MCP server (Model Context Protocol)
+    -   Validates and executes whitelisted commands
 
 ### 1. **`cs`** - Sandbox Launcher
 Launches AI agents in an isolated environment with controlled filesystem access

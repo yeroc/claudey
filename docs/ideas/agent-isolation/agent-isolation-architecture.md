@@ -44,11 +44,14 @@ The agent isolation system consists of **three distinct components** with differ
 - **Responsibility:** Expose privileged operations as MCP tools
 - **Runs:** On the host (outside sandbox) as a background service
 
-### 2. **Sandbox Launcher** (Platform-Specific Scripts/Binaries)
-- **Location:** `claudey/sandbox/` (new directory, NOT a Maven module)
-- **Technology:** Shell scripts + platform-specific tools
-- **Responsibility:** Launch sandboxed processes
-- **Runs:** On the host, creates isolated child processes
+### 2. **Sandbox Launcher** (External Dependency initially)
+-   **Phase 1:** Uses **`cco`** (https://github.com/nikvdp/cco)
+    -   Existing tool that handles `bubblewrap`/`sandbox-exec` isolation
+    -   Configured to use host networking to reach the bridge
+-   **Phase 2:** Native `cs` launcher
+    -   **Location:** `claudey/sandbox/`
+    -   **Technology:** Shell scripts + platform-specific tools
+    -   **Responsibility:** Launch sandboxed processes without external dependencies
 
 ### 3. **Agent Wrapper** (Optional Helper Scripts)
 - **Location:** `claudey/bin/` (existing directory)
