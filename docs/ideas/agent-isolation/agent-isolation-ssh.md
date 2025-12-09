@@ -1139,6 +1139,8 @@ Expect 5-20ms per call without multiplexing, <1ms with multiplexing for subseque
 
 **[mcp_command_server](https://github.com/copyleftdev/mcp_command_server)** - An MCP server implementation for executing shell commands. Provides a practical example of exposing command execution capabilities through the Model Context Protocol.
 
+**[claude-code-sandbox](https://github.com/textcortex/claude-code-sandbox)** - Runs Claude Code in local Docker containers to avoid constant permission approvals. Features automatic credential discovery, sandboxed execution, and execution monitoring.
+
 ## Conclusion
 
 This approach provides a practical balance for autonomous Claude Code operation:
