@@ -5,6 +5,28 @@
 
 ---
 
+## ⚠️ Security-First Design Principles
+
+> [!CAUTION]
+> **This is a security project.** Every design decision must pass through a threat model before considering convenience or features.
+
+**Before proposing or accepting ANY design change, ask:**
+
+1. **Can the agent influence this?** (create, modify, write, configure)
+2. **If yes, what's the worst case?** (privilege escalation, credential theft, arbitrary code execution)
+3. **Only if answers are acceptable:** Consider convenience/UX
+
+**Key invariants that must NEVER be violated:**
+
+| Invariant | Rationale |
+|-----------|-----------|
+| Agent cannot define its own tools | Would allow arbitrary privileged execution |
+| Tool definitions must be in agent-inaccessible locations | Agent writes to workspace; tools must be elsewhere |
+| Bridge must not execute anything the user hasn't explicitly whitelisted | Defense against prompt injection |
+| Validation happens on the Bridge, never trust agent input | Agent is potentially compromised |
+
+---
+
 ## The Problem
 
 You want to give autonomous AI agents (Claude Code, Gemini CLI) the ability to perform useful tasks (deploying code, restarting services, managing infrastructure) **without** giving them unrestricted access to your system's credentials.
@@ -245,38 +267,45 @@ Executes a whitelisted operation with validated arguments
 Each privileged operation is defined in a Markdown file with YAML frontmatter:
 
 **`~/.config/claudey/tools/deploy_prod.md`**
-```markdown
+
+```yaml
 ---
 name: deploy_prod
 description: Deploys the application to production or staging
 command: ~/scripts/deploy.sh
-args:
-  - name: environment
-    type: enum
-    allowed: ["staging", "prod"]
-  - name: branch
-    type: string
-    pattern: "^[a-z0-9-]+$"
-    default: "main"
 ---
+```
 
+The markdown body after the frontmatter provides documentation for `help()`:
+
+```markdown
 # Deploy to Production
 
-Use this tool to deploy the application.
+Deploys the current branch to staging or production environment.
+
+## Arguments
+
+1. **environment** - Target environment: `staging` or `prod`
+2. **branch** - Git branch to deploy (e.g., `main`, `feature-auth`)
 
 ## Examples
 
-**Deploy to Staging:**
-`execute("deploy_prod", ["staging", "feature-branch"])`
-
-**Deploy to Prod:**
-`execute("deploy_prod", ["prod", "main"])`
+- Deploy to staging: `execute("deploy_prod", ["staging", "feature-branch"])`
+- Deploy to prod: `execute("deploy_prod", ["prod", "main"])`
 ```
 
-**Automatic Validation:**
-- `environment="dev"` → **Rejected** (not in enum)
-- `branch="; rm -rf /"` → **Rejected** (regex mismatch)
-- `environment="prod", branch="main"` → **Allowed**
+**Frontmatter Fields:**
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Unique program identifier |
+| `description` | Yes | Short description for `list_programs()` |
+| `command` | Yes | Path to executable (~ expanded to $HOME) |
+
+**Argument Validation:**
+- All arguments are validated for **safe characters only**
+- Rejected: `;`, `|`, `&`, `$`, `` ` ``, `\n`, `\0`, and other shell metacharacters
+- Allowed: alphanumeric, `.`, `-`, `_`, `/`, spaces
+- Semantic validation (e.g., "must be staging or prod") is the script's responsibility
 
 ---
 
@@ -299,11 +328,19 @@ Use this tool to deploy the application.
 
 ### Input Validation
 
-All bridge tool arguments validated using JSON Schema:
-- **Type checking** (string, integer, boolean, enum)
-- **Regex patterns** (prevent injection)
-- **Enum constraints** (whitelist values)
-- **Required vs optional** parameters
+All arguments passed to `execute()` are validated for **safe characters**:
+
+**Rejected characters:**
+- Shell metacharacters: `;`, `|`, `&`, `$`, `` ` ``
+- Control characters: `\n`, `\0`, `\r`
+- Subshell syntax: `$(`, `)`, `{`, `}`
+
+**Allowed characters:**
+- Alphanumeric: `a-z`, `A-Z`, `0-9`
+- Path-safe: `.`, `-`, `_`, `/`
+- Spaces (for multi-word values)
+
+This prevents shell injection while allowing the underlying scripts to handle their own semantic validation (e.g., checking if an environment is valid).
 
 ### Escape Prevention
 
