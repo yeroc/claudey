@@ -400,10 +400,19 @@ See [IMPLEMENTATION.md](./IMPLEMENTATION.md) for detailed execution plan.
 
 ## Related Projects
 
+### Claudey Bridge Ecosystem
 - [MCP Specification](https://spec.modelcontextprotocol.io/)
-- [Bubblewrap](https://github.com/containers/bubblewrap) - Linux sandboxing
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) - Anthropic's coding agent
-- [Gemini CLI](https://ai.google.dev/) - Google's AI CLI
+- [Bubblewrap](https://github.com/containers/bubblewrap) - Linux sandboxing used by Claudey Bridge
+
+### Similar Initiatives
+**[cco (Claude Code Orchestrator)](https://github.com/nikvdp/cco)** - A project exploring similar security concerns around Claude Code execution. May provide additional inspiration for isolation approaches and credential management patterns.
+
+**[ClaudeCage](https://github.com/PACHAKUTlQ/ClaudeCage)** - Takes a different approach to isolating Claude Code using containerization and security boundaries. Worth exploring for alternative perspectives on the same problem.
+
+**[mcp_command_server](https://github.com/copyleftdev/mcp_command_server)** - An MCP server implementation for executing shell commands. Provides a practical example of exposing command execution capabilities through the Model Context Protocol.
+
+**[claude-code-sandbox](https://github.com/textcortex/claude-code-sandbox)** - Runs Claude Code in local Docker containers to avoid constant permission approvals. Features automatic credential discovery, sandboxed execution, and execution monitoring.
+
 
 ---
 
