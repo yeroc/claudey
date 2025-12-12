@@ -49,7 +49,8 @@ jobs:
           # The original workflows searched inside `database/target` or `${module}/target`.
           # We will look in the current directory recursively for the artifact.
           
-          JAR_FILE=$(find . -type f -name "${{ inputs.artifact_name }}-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n1)
+          JAR_FILE=$(find . -path '*/target/*' -type f -name "${{ inputs.artifact_name }}-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n1)
+
           
           if [ -z "$JAR_FILE" ]; then
             echo "JAR file not found matching ${{ inputs.artifact_name }}-*.jar"

@@ -57,7 +57,11 @@ jobs:
         id: find_binary
         run: |
           # Find the native binary (exclude .jar, .json, .txt files)
-          BINARY=$(find . -type f -name '${{ inputs.artifact_name }}-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' ! -name '*.sha256' | head -n1)
+          BINARY=$(find . -path '*/target/*' -type f -name '${{ inputs.artifact_name }}-*' -perm -u+x | head -n1)
+
+
+
+
           if [ -z "$BINARY" ]; then
             echo "Native binary not found!"
             exit 1
