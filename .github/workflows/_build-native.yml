@@ -13,6 +13,12 @@ on:
         required: false
         type: string
         default: 'mcp-database-server'
+      retention_days:
+        description: 'Days to keep the artifact'
+        required: false
+        type: number
+        default: 1
+
 
 jobs:
   build-native:
@@ -114,3 +120,5 @@ jobs:
           path: |
             ${{ steps.find_binary.outputs.binary_path }}-*
             ${{ steps.find_binary.outputs.binary_path }}*.sha256
+          retention-days: ${{ inputs.retention_days }}
+

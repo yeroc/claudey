@@ -53,6 +53,8 @@ jobs:
       maven_args: 'clean package -pl ${{ needs.setup.outputs.module }} -am -DskipTests -Drevision=${{ needs.setup.outputs.version }}'
       artifact_name: ${{ needs.setup.outputs.artifact_name }}
       upload_name: jar
+      retention_days: 5
+
 
   build-native:
     name: Build Native
@@ -62,6 +64,8 @@ jobs:
 
       maven_args: 'clean package -pl ${{ needs.setup.outputs.module }} -am -Dnative -DskipTests -Drevision=${{ needs.setup.outputs.version }}'
       artifact_name: ${{ needs.setup.outputs.artifact_name }}
+      retention_days: 5
+
     secrets: inherit
 
   create-release:

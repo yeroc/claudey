@@ -18,6 +18,12 @@ on:
         required: false
         type: string
         default: 'jar'
+      retention_days:
+        description: 'Days to keep the artifact'
+        required: false
+        type: number
+        default: 1
+
 
 jobs:
   build-jar:
@@ -66,4 +72,5 @@ jobs:
           path: |
             **/target/${{ inputs.artifact_name }}-*.jar
             **/target/${{ inputs.artifact_name }}-*.jar.sha256
-          retention-days: 30
+          retention-days: ${{ inputs.retention_days }}
+
