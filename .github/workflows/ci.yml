@@ -8,27 +8,25 @@ jobs:
     name: Run Tests
     uses: ./.github/workflows/_test.yml
     with:
-
       run_sqlite: true
       maven_args: 'clean verify'
 
   build-jar:
-    name: Build JAR
+    name: Build JARs
     needs: [test]
     uses: ./.github/workflows/_build-jar.yml
     with:
-
       maven_args: 'clean package -DskipTests'
-      artifact_name: 'mcp-database-server'
+      artifact_name: '*.jar'
 
   build-native:
     name: Build Native
     needs: [test]
     uses: ./.github/workflows/_build-native.yml
     with:
-
       maven_args: 'clean package -Dnative -DskipTests'
-      artifact_name: 'mcp-database-server'
+      # Find all executables in target directories (filters in the workflow exclude .jar, .json, etc)
+      artifact_name: '*'
       # Secrets are automatically inherited in reusable workflows called from within the same repo, 
       # but explicit inheritance is clearer or required in some org configs. 
       # "secrets: inherit" is the keyword.

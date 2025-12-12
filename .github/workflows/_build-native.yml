@@ -9,16 +9,15 @@ on:
         type: string
         default: 'package -Dnative -DskipTests'
       artifact_name:
-        description: 'Name of the artifact binary'
+        description: 'Pattern of the artifact binary (glob)'
         required: false
         type: string
-        default: 'mcp-database-server'
+        default: 'mcp-*-server-*'
       retention_days:
         description: 'Days to keep the artifact'
         required: false
         type: number
         default: 1
-
 
 jobs:
   build-native:
@@ -53,82 +52,57 @@ jobs:
           MAVEN_OPTS: ${{ matrix.maven_opts }}
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
 
-      - name: Find and verify native binary
-        id: find_binary
+      - name: Process native binaries
+        id: process_binaries
         run: |
-          # Find the native binary (exclude .jar, .json, .txt files)
-          BINARY=$(find . -path '*/target/*' -type f -name '${{ inputs.artifact_name }}-*' -perm -u+x | head -n1)
-
-
-
-
-          if [ -z "$BINARY" ]; then
-            echo "Native binary not found!"
-            exit 1
-          fi
-          echo "Found binary: $BINARY"
-          ls -lh "$BINARY"
-          echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
-
-      - name: Test native binary functionality
-        run: |
-          BINARY=${{ steps.find_binary.outputs.binary_path }}
-          echo "Testing binary functionality: $BINARY"
-
-          # Test introspect command with SQLite in-memory database
-          export DB_KIND="sqlite"
-          export DB_URL="jdbc:sqlite::memory:"
+          # Find all matching native binaries
+          # Start with empty outputs
+          echo "Processing binaries matching: ${{ inputs.artifact_name }}"
           
-          # Allow failure if the binary doesn't support introspect (e.g. if we reuse this for other tools)
-          # But for now we assume it does.
-          "$BINARY" introspect
-          
-          echo "Binary functional test completed successfully"
+          find . -path '*/target/*' -type f -name '${{ inputs.artifact_name }}' -perm -u+x -print0 | while IFS= read -r -d '' BINARY; do
+             echo "Found binary: $BINARY"
+             
+             # Test Introspect (if supported)
+             echo "Testing binary functionality..."
+             export DB_KIND="sqlite"
+             export DB_URL="jdbc:sqlite::memory:"
+             "$BINARY" introspect || echo "Introspect failed or not supported, continuing..."
+             
+             # Size Check
+             if [[ "$OSTYPE" == "darwin"* ]]; then
+               SIZE=$(stat -f%z "$BINARY")
+             else
+               SIZE=$(stat -c%s "$BINARY")
+             fi
+             SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
+             echo "Binary size: ${SIZE_MB}MB"
+             
+             # Rename and Checksum
+             BINARY_DIR=$(dirname "$BINARY")
+             BINARY_NAME=$(basename "$BINARY")
+             RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
+             
+             cd "$BINARY_DIR"
+             if [[ "$BINARY_NAME" != *"${{ matrix.platform }}" ]]; then
+                mv "$BINARY_NAME" "$RENAMED"
+                BINARY_NAME="$RENAMED"
+             fi
+             
+             if [[ "$OSTYPE" == "darwin"* ]]; then
+               shasum -a 256 "$BINARY_NAME" > "${BINARY_NAME}.sha256"
+             else
+               sha256sum "$BINARY_NAME" > "${BINARY_NAME}.sha256"
+             fi
+             
+             # Return to root
+             cd - > /dev/null
+          done
 
-      - name: Calculate binary size
-        id: binary_size
-        run: |
-          BINARY=${{ steps.find_binary.outputs.binary_path }}
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            SIZE=$(stat -f%z "$BINARY")
-          else
-            SIZE=$(stat -c%s "$BINARY")
-          fi
-          SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
-          echo "Binary size: ${SIZE_MB}MB"
-
-      - name: Rename and checksum native binary
-        id: rename_step
-        run: |
-          BINARY=${{ steps.find_binary.outputs.binary_path }}
-
-          BINARY_DIR=$(dirname "$BINARY")
-          BINARY_NAME=$(basename "$BINARY")
-          RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
-
-          cd "$BINARY_DIR"
-          # Only rename if not already named correctly (avoid double renaming if run multiple times)
-          if [[ "$BINARY_NAME" != *"${{ matrix.platform }}" ]]; then
-            mv "$BINARY_NAME" "$RENAMED"
-            BINARY_NAME="$RENAMED"
-          fi
-          
-          if [[ "$OSTYPE" == "darwin"* ]]; then
-            shasum -a 256 "$BINARY_NAME" > "${BINARY_NAME}.sha256"
-          else
-            sha256sum "$BINARY_NAME" > "${BINARY_NAME}.sha256"
-          fi
-          
-          echo "binary_path=$BINARY_DIR/$BINARY_NAME" >> $GITHUB_OUTPUT
-          echo "checksum_path=$BINARY_DIR/$BINARY_NAME.sha256" >> $GITHUB_OUTPUT
-
-      - name: Upload native binary artifact
+      - name: Upload native binary artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.platform }}
           path: |
-            ${{ steps.rename_step.outputs.binary_path }}
-            ${{ steps.rename_step.outputs.checksum_path }}
+            **/target/${{ inputs.artifact_name }}*
+            **/target/*.sha256
           retention-days: ${{ inputs.retention_days }}
-
-

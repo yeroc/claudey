@@ -40,7 +40,6 @@ jobs:
     needs: setup
     uses: ./.github/workflows/_test.yml
     with:
-
       maven_args: 'clean verify -pl ${{ needs.setup.outputs.module }} -am -Drevision=${{ needs.setup.outputs.version }}'
       run_sqlite: false # Usually release tests might run less variants or same. Original didn't have SQLite explicit block.
 
@@ -49,30 +48,25 @@ jobs:
     needs: [setup, test]
     uses: ./.github/workflows/_build-jar.yml
     with:
-
       maven_args: 'clean package -pl ${{ needs.setup.outputs.module }} -am -DskipTests -Drevision=${{ needs.setup.outputs.version }}'
-      artifact_name: ${{ needs.setup.outputs.artifact_name }}
+      artifact_name: '${{ needs.setup.outputs.artifact_name }}-*.jar'
       upload_name: jar
       retention_days: 5
-
 
   build-native:
     name: Build Native
     needs: [setup, test]
     uses: ./.github/workflows/_build-native.yml
     with:
-
       maven_args: 'clean package -pl ${{ needs.setup.outputs.module }} -am -Dnative -DskipTests -Drevision=${{ needs.setup.outputs.version }}'
-      artifact_name: ${{ needs.setup.outputs.artifact_name }}
+      artifact_name: '${{ needs.setup.outputs.artifact_name }}-*'
       retention_days: 5
-
     secrets: inherit
 
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [setup, test, build-jar, build-native]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -106,8 +100,6 @@ jobs:
               -e "s|{{REPO}}|${REPO}|g" \
               -e "s|{{ARTIFACT_NAME}}|${ARTIFACT_NAME}|g" \
               .github/release-template.md > release-notes.md
-
-
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

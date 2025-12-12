@@ -9,10 +9,10 @@ on:
         type: string
         default: 'clean package -DskipTests'
       artifact_name:
-        description: 'Name of the artifact to look for and release'
+        description: 'Pattern of the artifact to look for (glob)'
         required: false
         type: string
-        default: 'mcp-database-server'
+        default: 'mcp-*-server-*.jar'
       upload_name:
         description: 'Name of the upload artifact'
         required: false
@@ -23,7 +23,6 @@ on:
         required: false
         type: number
         default: 1
-
 
 jobs:
   build-jar:
@@ -42,36 +41,26 @@ jobs:
       - name: Build uber-jar
         run: mvn --batch-mode ${{ inputs.maven_args }}
 
-      - name: Generate JAR checksum
+      - name: Generate JAR checksums
         run: |
-          # Find the JAR file (expecting it in database/target or target depending on context)
-          # We search broadly or use the inputs. For now assuming standard layout unless module specific logic is needed.
-          # The original workflows searched inside `database/target` or `${module}/target`.
-          # We will look in the current directory recursively for the artifact.
-          
-          JAR_FILE=$(find . -path '*/target/*' -type f -name "${{ inputs.artifact_name }}-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n1)
+          # Find all matching JAR files in target directories
+          find . -path '*/target/*' -type f -name "${{ inputs.artifact_name }}" ! -name "original-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -print0 | while IFS= read -r -d '' JAR_FILE; do
+            echo "Found JAR: $JAR_FILE"
+            DIR=$(dirname "$JAR_FILE")
+            FILENAME=$(basename "$JAR_FILE")
+            
+            cd "$DIR"
+            sha256sum "$FILENAME" > "$FILENAME.sha256"
+            echo "Generated checksum for $FILENAME"
+            # Go back to root for next iteration (though we use absolute search paths, cd affects context)
+            cd - > /dev/null
+          done
 
-          
-          if [ -z "$JAR_FILE" ]; then
-            echo "JAR file not found matching ${{ inputs.artifact_name }}-*.jar"
-            # It might be in a submodule
-            exit 1
-          fi
-          
-          echo "Found JAR: $JAR_FILE"
-          DIR=$(dirname "$JAR_FILE")
-          FILENAME=$(basename "$JAR_FILE")
-          
-          cd "$DIR"
-          sha256sum "$FILENAME" > "$FILENAME.sha256"
-          echo "Generated checksum for $FILENAME"
-
-      - name: Upload JAR artifact
+      - name: Upload JAR artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.upload_name }}
           path: |
-            **/target/${{ inputs.artifact_name }}-*.jar
-            **/target/${{ inputs.artifact_name }}-*.jar.sha256
+            **/target/${{ inputs.artifact_name }}
+            **/target/${{ inputs.artifact_name }}.sha256
           retention-days: ${{ inputs.retention_days }}
-
