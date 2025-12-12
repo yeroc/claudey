@@ -98,8 +98,10 @@ jobs:
           echo "Binary size: ${SIZE_MB}MB"
 
       - name: Rename and checksum native binary
+        id: rename_step
         run: |
           BINARY=${{ steps.find_binary.outputs.binary_path }}
+
           BINARY_DIR=$(dirname "$BINARY")
           BINARY_NAME=$(basename "$BINARY")
           RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
@@ -116,13 +118,17 @@ jobs:
           else
             sha256sum "$BINARY_NAME" > "${BINARY_NAME}.sha256"
           fi
+          
+          echo "binary_path=$BINARY_DIR/$BINARY_NAME" >> $GITHUB_OUTPUT
+          echo "checksum_path=$BINARY_DIR/$BINARY_NAME.sha256" >> $GITHUB_OUTPUT
 
       - name: Upload native binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.platform }}
           path: |
-            ${{ steps.find_binary.outputs.binary_path }}-*
-            ${{ steps.find_binary.outputs.binary_path }}*.sha256
+            ${{ steps.rename_step.outputs.binary_path }}
+            ${{ steps.rename_step.outputs.checksum_path }}
           retention-days: ${{ inputs.retention_days }}
+
 
