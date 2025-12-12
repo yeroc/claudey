@@ -1,0 +1,74 @@
+name: Reusable Test
+
+on:
+  workflow_call:
+    inputs:
+      maven_args:
+        description: 'Maven arguments for running tests'
+        required: false
+        type: string
+        default: 'clean verify'
+      run_sqlite:
+        description: 'Whether to run SQLite tests'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          java-version: '21'
+
+      - name: Run tests with PostgreSQL
+        env:
+          DB_KIND: postgresql
+          DB_URL: jdbc:postgresql://localhost:5432/testdb
+          DB_USERNAME: testuser
+          DB_PASSWORD: testpass
+        run: mvn --batch-mode ${{ inputs.maven_args }}
+
+      - name: Run tests with SQLite
+        if: inputs.run_sqlite
+        # No env vars needed - defaults to file-based SQLite for proper test isolation
+        run: mvn --batch-mode ${{ inputs.maven_args }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: database/target/surefire-reports/
+          retention-days: 7
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: database/target/jacoco-report/
+          retention-days: 7
+          if-no-files-found: ignore

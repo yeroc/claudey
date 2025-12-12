@@ -1,0 +1,52 @@
+name: 'Setup Java/GraalVM & Maven'
+description: 'Sets up Java or GraalVM and restores Maven cache'
+inputs:
+  type:
+    description: 'Type of setup: "standard" or "native"'
+    required: false
+    default: 'standard'
+  java-version:
+    description: 'Java version to set up'
+    required: false
+    default: '21'
+  github-token:
+    description: 'GitHub token for GraalVM setup (to avoid rate limits)'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache Maven packages
+      id: cache-maven
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          maven-
+
+    - name: Set up JDK ${{ inputs.java-version }}
+      if: inputs.type == 'standard'
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: 'temurin'
+
+    - name: Set up GraalVM
+      if: inputs.type == 'native'
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: 'graalvm-community'
+        github-token: ${{ inputs.github-token }}
+
+    - name: Check cache status
+      shell: bash
+      run: |
+        if [ "${{ steps.cache-maven.outputs.cache-hit }}" == "true" ]; then
+          echo "✅ Cache hit - using cached Maven repository"
+          echo "Cache size: $(du -sh ~/.m2/repository 2>/dev/null || echo 'N/A')"
+        else
+          echo "⚠️ Cache miss - will download dependencies"
+        fi

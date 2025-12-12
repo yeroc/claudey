@@ -1,0 +1,116 @@
+name: Reusable Build Native
+
+on:
+  workflow_call:
+    inputs:
+      maven_args:
+        description: 'Maven arguments for building'
+        required: false
+        type: string
+        default: 'package -Dnative -DskipTests'
+      artifact_name:
+        description: 'Name of the artifact binary'
+        required: false
+        type: string
+        default: 'mcp-database-server'
+
+jobs:
+  build-native:
+    name: Build Native Binary (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            maven_opts: "-Xmx4g"
+          - os: macos-14
+            platform: macos-arm64
+            macos_target: "11.0"
+            maven_opts: "-Xmx4g"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          type: 'native'
+          java-version: '21'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native binary
+        run: mvn --batch-mode ${{ inputs.maven_args }}
+        env:
+          MAVEN_OPTS: ${{ matrix.maven_opts }}
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
+
+      - name: Find and verify native binary
+        id: find_binary
+        run: |
+          # Find the native binary (exclude .jar, .json, .txt files)
+          BINARY=$(find . -type f -name '${{ inputs.artifact_name }}-*' ! -name '*.jar' ! -name '*.json' ! -name '*.txt' ! -name '*.sha256' | head -n1)
+          if [ -z "$BINARY" ]; then
+            echo "Native binary not found!"
+            exit 1
+          fi
+          echo "Found binary: $BINARY"
+          ls -lh "$BINARY"
+          echo "binary_path=$BINARY" >> $GITHUB_OUTPUT
+
+      - name: Test native binary functionality
+        run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          echo "Testing binary functionality: $BINARY"
+
+          # Test introspect command with SQLite in-memory database
+          export DB_KIND="sqlite"
+          export DB_URL="jdbc:sqlite::memory:"
+          
+          # Allow failure if the binary doesn't support introspect (e.g. if we reuse this for other tools)
+          # But for now we assume it does.
+          "$BINARY" introspect
+          
+          echo "Binary functional test completed successfully"
+
+      - name: Calculate binary size
+        id: binary_size
+        run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            SIZE=$(stat -f%z "$BINARY")
+          else
+            SIZE=$(stat -c%s "$BINARY")
+          fi
+          SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
+          echo "Binary size: ${SIZE_MB}MB"
+
+      - name: Rename and checksum native binary
+        run: |
+          BINARY=${{ steps.find_binary.outputs.binary_path }}
+          BINARY_DIR=$(dirname "$BINARY")
+          BINARY_NAME=$(basename "$BINARY")
+          RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
+
+          cd "$BINARY_DIR"
+          # Only rename if not already named correctly (avoid double renaming if run multiple times)
+          if [[ "$BINARY_NAME" != *"${{ matrix.platform }}" ]]; then
+            mv "$BINARY_NAME" "$RENAMED"
+            BINARY_NAME="$RENAMED"
+          fi
+          
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            shasum -a 256 "$BINARY_NAME" > "${BINARY_NAME}.sha256"
+          else
+            sha256sum "$BINARY_NAME" > "${BINARY_NAME}.sha256"
+          fi
+
+      - name: Upload native binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}
+          path: |
+            ${{ steps.find_binary.outputs.binary_path }}-*
+            ${{ steps.find_binary.outputs.binary_path }}*.sha256

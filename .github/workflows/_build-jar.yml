@@ -1,0 +1,69 @@
+name: Reusable Build JAR
+
+on:
+  workflow_call:
+    inputs:
+      maven_args:
+        description: 'Maven arguments for building'
+        required: false
+        type: string
+        default: 'clean package -DskipTests'
+      artifact_name:
+        description: 'Name of the artifact to look for and release'
+        required: false
+        type: string
+        default: 'mcp-database-server'
+      upload_name:
+        description: 'Name of the upload artifact'
+        required: false
+        type: string
+        default: 'jar'
+
+jobs:
+  build-jar:
+    name: Build JAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          java-version: '21'
+
+      - name: Build uber-jar
+        run: mvn --batch-mode ${{ inputs.maven_args }}
+
+      - name: Generate JAR checksum
+        run: |
+          # Find the JAR file (expecting it in database/target or target depending on context)
+          # We search broadly or use the inputs. For now assuming standard layout unless module specific logic is needed.
+          # The original workflows searched inside `database/target` or `${module}/target`.
+          # We will look in the current directory recursively for the artifact.
+          
+          JAR_FILE=$(find . -type f -name "${{ inputs.artifact_name }}-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n1)
+          
+          if [ -z "$JAR_FILE" ]; then
+            echo "JAR file not found matching ${{ inputs.artifact_name }}-*.jar"
+            # It might be in a submodule
+            exit 1
+          fi
+          
+          echo "Found JAR: $JAR_FILE"
+          DIR=$(dirname "$JAR_FILE")
+          FILENAME=$(basename "$JAR_FILE")
+          
+          cd "$DIR"
+          sha256sum "$FILENAME" > "$FILENAME.sha256"
+          echo "Generated checksum for $FILENAME"
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.upload_name }}
+          path: |
+            **/target/${{ inputs.artifact_name }}-*.jar
+            **/target/${{ inputs.artifact_name }}-*.jar.sha256
+          retention-days: 30
