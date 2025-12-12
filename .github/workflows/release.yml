@@ -94,12 +94,16 @@ jobs:
           VERSION=${{ needs.setup.outputs.version }}
           REPO=${{ github.repository }}
           ARTIFACT_NAME=${{ needs.setup.outputs.artifact_name }}
+          TAG=${{ github.ref_name }}
 
           # Generate release notes from template
-          sed -e "s|VERSION|${VERSION}|g" \
-              -e "s|REPO|${REPO}|g" \
-              -e "s|ARTIFACT_NAME|${ARTIFACT_NAME}|g" \
+          sed -e "s|{{VERSION}}|${VERSION}|g" \
+              -e "s|{{TAG}}|${TAG}|g" \
+              -e "s|{{REPO}}|${REPO}|g" \
+              -e "s|{{ARTIFACT_NAME}}|${ARTIFACT_NAME}|g" \
               .github/release-template.md > release-notes.md
+
+
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
