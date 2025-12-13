@@ -6,7 +6,6 @@ on:
 jobs:
   test:
     name: Run Tests
-    timeout-minutes: 20
     uses: ./.github/workflows/_test.yml
     with:
       run_sqlite: true
@@ -15,7 +14,6 @@ jobs:
   build-jar:
     name: Build JARs
     needs: [test]
-    timeout-minutes: 20
     uses: ./.github/workflows/_build-jar.yml
     with:
       maven_args: 'clean package -DskipTests'
@@ -24,7 +22,6 @@ jobs:
   build-native:
     name: Build Native
     needs: [test]
-    timeout-minutes: 20
     uses: ./.github/workflows/_build-native.yml
     with:
       maven_args: 'clean package -Dnative -DskipTests'

@@ -39,7 +39,6 @@ jobs:
   test:
     name: Run Tests
     needs: setup
-    timeout-minutes: 20
     uses: ./.github/workflows/_test.yml
     with:
       maven_args: 'clean verify -pl ${{ needs.setup.outputs.module }} -am -Drevision=${{ needs.setup.outputs.version }}'
@@ -48,7 +47,6 @@ jobs:
   build-jar:
     name: Build JAR
     needs: [setup, test]
-    timeout-minutes: 20
     uses: ./.github/workflows/_build-jar.yml
     with:
       maven_args: 'clean package -pl ${{ needs.setup.outputs.module }} -am -DskipTests -Drevision=${{ needs.setup.outputs.version }}'
@@ -59,7 +57,6 @@ jobs:
   build-native:
     name: Build Native
     needs: [setup, test]
-    timeout-minutes: 20
     uses: ./.github/workflows/_build-native.yml
     with:
       maven_args: 'clean package -pl ${{ needs.setup.outputs.module }} -am -Dnative -DskipTests -Drevision=${{ needs.setup.outputs.version }}'
