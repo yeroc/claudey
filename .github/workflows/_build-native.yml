@@ -20,21 +20,49 @@ on:
         default: 1
 
 jobs:
-  build-native:
-    name: Build Native Binary (${{ matrix.platform }})
-    runs-on: ${{ matrix.os }}
+  build-native-linux:
+    name: Build Native Binary (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: almalinux:8
     
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux-x64
-            maven_opts: "-Xmx4g"
-          - os: macos-14
-            platform: macos-arm64
-            macos_target: "11.0"
-            maven_opts: "-Xmx4g"
+    steps:
+      - name: Install dependencies
+        run: |
+          dnf install -y gcc glibc-devel zlib-devel tar gzip findutils
+      
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          type: 'native'
+          java-version: '21'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native binary
+        run: mvn --batch-mode ${{ inputs.maven_args }}
+        env:
+          MAVEN_OPTS: "-Xmx4g"
+
+      - name: Process native binaries
+        run: ./.github/scripts/process-native.sh "${{ inputs.artifact_name }}" "linux-x64"
+
+      - name: Upload native binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-linux-x64
+          path: |
+            **/target/${{ inputs.artifact_name }}*
+            **/target/*.sha256
+          retention-days: ${{ inputs.retention_days }}
+
+  build-native-macos:
+    name: Build Native Binary (macOS)
+    runs-on: macos-14
+    timeout-minutes: 20
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,59 +77,16 @@ jobs:
       - name: Build native binary
         run: mvn --batch-mode ${{ inputs.maven_args }}
         env:
-          MAVEN_OPTS: ${{ matrix.maven_opts }}
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_target || '' }}
+          MAVEN_OPTS: "-Xmx4g"
+          MACOSX_DEPLOYMENT_TARGET: "11.0"
 
       - name: Process native binaries
-        id: process_binaries
-        run: |
-          # Find all matching native binaries
-          # Start with empty outputs
-          echo "Processing binaries matching: ${{ inputs.artifact_name }}"
-          
-          find . -path '*/target/*' -type f -name '${{ inputs.artifact_name }}' -perm -u+x -print0 | while IFS= read -r -d '' BINARY; do
-             echo "Found binary: $BINARY"
-             
-             # Test Introspect (if supported)
-             echo "Testing binary functionality..."
-             export DB_KIND="sqlite"
-             export DB_URL="jdbc:sqlite::memory:"
-             "$BINARY" introspect || echo "Introspect failed or not supported, continuing..."
-             
-             # Size Check
-             if [[ "$OSTYPE" == "darwin"* ]]; then
-               SIZE=$(stat -f%z "$BINARY")
-             else
-               SIZE=$(stat -c%s "$BINARY")
-             fi
-             SIZE_MB=$(echo "scale=2; $SIZE / 1024 / 1024" | bc)
-             echo "Binary size: ${SIZE_MB}MB"
-             
-             # Rename and Checksum
-             BINARY_DIR=$(dirname "$BINARY")
-             BINARY_NAME=$(basename "$BINARY")
-             RENAMED="${BINARY_NAME}-${{ matrix.platform }}"
-             
-             cd "$BINARY_DIR"
-             if [[ "$BINARY_NAME" != *"${{ matrix.platform }}" ]]; then
-                mv "$BINARY_NAME" "$RENAMED"
-                BINARY_NAME="$RENAMED"
-             fi
-             
-             if [[ "$OSTYPE" == "darwin"* ]]; then
-               shasum -a 256 "$BINARY_NAME" > "${BINARY_NAME}.sha256"
-             else
-               sha256sum "$BINARY_NAME" > "${BINARY_NAME}.sha256"
-             fi
-             
-             # Return to root
-             cd - > /dev/null
-          done
+        run: ./.github/scripts/process-native.sh "${{ inputs.artifact_name }}" "macos-arm64"
 
       - name: Upload native binary artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: native-${{ matrix.platform }}
+          name: native-macos-arm64
           path: |
             **/target/${{ inputs.artifact_name }}*
             **/target/*.sha256
