@@ -38,6 +38,11 @@ public class Main implements QuarkusApplication {
    */
   @Override
   public int run(String... args) throws Exception {
+    if (args.length > 0) {
+      System.out.println("Arguments not supported in stdio mode (yet).");
+      return 1;
+    }
+
     LOG.info("Initializing MCP (stdio) server...");
 
     mcpHandler.initialize(System.out);
