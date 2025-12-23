@@ -60,8 +60,8 @@ jobs:
         with:
           name: native-linux-x64
           path: |
-            **/target/${{ inputs.artifact_name }}*
-            **/target/*.sha256
+            **/target/*-linux-x64
+            **/target/*-linux-x64.sha256
           retention-days: ${{ inputs.retention_days }}
 
   build-native-macos:
@@ -94,6 +94,6 @@ jobs:
         with:
           name: native-macos-arm64
           path: |
-            **/target/${{ inputs.artifact_name }}*
-            **/target/*.sha256
+            **/target/*-macos-arm64
+            **/target/*-macos-arm64.sha256
           retention-days: ${{ inputs.retention_days }}
