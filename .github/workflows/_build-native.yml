@@ -29,7 +29,10 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dnf install -y gcc glibc-devel zlib-devel zlib-static tar gzip findutils
+          dnf install -y gcc glibc-devel zlib-devel tar gzip findutils
+          dnf install -y dnf-plugins-core
+          dnf config-manager --set-enabled powertools
+          dnf install -y zlib-static
           # Install Maven 3.9.12 (AlmaLinux 8 repo has older version)
           curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.tar.gz | tar xz -C /opt
           ln -s /opt/apache-maven-3.9.12/bin/mvn /usr/local/bin/mvn
