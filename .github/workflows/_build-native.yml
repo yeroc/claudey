@@ -29,7 +29,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dnf install -y gcc glibc-devel zlib-devel tar gzip findutils
+          dnf install -y gcc glibc-devel zlib-devel tar gzip findutils bc
           dnf install -y dnf-plugins-core
           dnf config-manager --set-enabled powertools
           dnf install -y zlib-static
