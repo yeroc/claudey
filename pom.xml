@@ -29,6 +29,8 @@
     <sqlite.version>3.46.1.3</sqlite.version>
     <system-stubs.version>2.1.8</system-stubs.version>
     <graalvm-metadata.version>0.11.3</graalvm-metadata.version>
+    
+    <native.build.args></native.build.args>
   </properties>
 
   <dependencyManagement>
@@ -112,4 +114,54 @@
       </plugins>
     </pluginManagement>
   </build>
+
+  <profiles>
+    <profile>
+      <id>native</id>
+      <activation>
+        <property>
+          <name>native</name>
+        </property>
+      </activation>
+      <properties>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <quarkus.package.jar.enabled>false</quarkus.package.jar.enabled>
+        <quarkus.native.additional-build-args>${native.build.args}</quarkus.native.additional-build-args>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <native.image.path>${project.build.directory}/${project.build.finalName}</native.image.path>
+                    <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    <maven.home>${maven.home}</maven.home>
+                  </systemPropertyVariables>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>native-linux</id>
+      <activation>
+        <os>
+          <family>linux</family>
+        </os>
+      </activation>
+      <properties>
+        <!-- For GraalVM 23+, use: dash-dash-static-nolibc -->
+        <native.build.args>-H:+StaticExecutableWithDynamicLibC</native.build.args>
+      </properties>
+    </profile>
+  </profiles>
 </project>

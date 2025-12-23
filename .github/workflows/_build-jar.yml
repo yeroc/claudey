@@ -1,0 +1,67 @@
+name: Reusable Build JAR
+
+on:
+  workflow_call:
+    inputs:
+      maven_args:
+        description: 'Maven arguments for building'
+        required: false
+        type: string
+        default: 'clean package -DskipTests'
+      artifact_name:
+        description: 'Pattern of the artifact to look for (glob)'
+        required: false
+        type: string
+        default: 'mcp-*-server-*.jar'
+      upload_name:
+        description: 'Name of the upload artifact'
+        required: false
+        type: string
+        default: 'jar'
+      retention_days:
+        description: 'Days to keep the artifact'
+        required: false
+        type: number
+        default: 1
+
+jobs:
+  build-jar:
+    name: Build JAR
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup-env
+        with:
+          java-version: '21'
+
+      - name: Build uber-jar
+        run: mvn --batch-mode ${{ inputs.maven_args }}
+
+      - name: Generate JAR checksums
+        run: |
+          # Find all matching JAR files in target directories
+          find . -path '*/target/*' -type f -name "${{ inputs.artifact_name }}" ! -name "original-*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -print0 | while IFS= read -r -d '' JAR_FILE; do
+            echo "Found JAR: $JAR_FILE"
+            DIR=$(dirname "$JAR_FILE")
+            FILENAME=$(basename "$JAR_FILE")
+            
+            cd "$DIR"
+            sha256sum "$FILENAME" > "$FILENAME.sha256"
+            echo "Generated checksum for $FILENAME"
+            # Go back to root for next iteration (though we use absolute search paths, cd affects context)
+            cd - > /dev/null
+          done
+
+      - name: Upload JAR artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.upload_name }}
+          path: |
+            **/target/${{ inputs.artifact_name }}
+            **/target/${{ inputs.artifact_name }}.sha256
+          retention-days: ${{ inputs.retention_days }}
