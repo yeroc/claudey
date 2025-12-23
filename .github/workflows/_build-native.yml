@@ -29,7 +29,10 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          dnf install -y gcc glibc-devel zlib-devel tar gzip findutils maven
+          dnf install -y gcc glibc-devel zlib-devel tar gzip findutils
+          # Install Maven 3.9.12 (AlmaLinux 8 repo has older version)
+          curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.tar.gz | tar xz -C /opt
+          ln -s /opt/apache-maven-3.9.12/bin/mvn /usr/local/bin/mvn
       
       - name: Checkout code
         uses: actions/checkout@v4
