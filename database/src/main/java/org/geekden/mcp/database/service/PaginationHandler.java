@@ -1,20 +1,28 @@
 package org.geekden.mcp.database.service;
 
+import org.geekden.mcp.database.dialect.DatabaseDialect;
+import org.geekden.mcp.database.dialect.DialectFactory;
+
+import java.sql.DatabaseMetaData;
+import java.sql.SQLException;
+
 /**
  * Handles pagination logic for SQL queries.
  *
  * Features:
  * - Detects if a query is pageable (SELECT statements)
  * - Injects LIMIT/OFFSET clauses for pagination
- * - Supports database-specific syntax (PostgreSQL, SQLite)
+ * - Supports database-specific syntax via dialect abstraction
  * - Fetches PAGE_SIZE + 1 rows to detect if more data is available
  */
 public class PaginationHandler {
 
   private final int pageSize;
+  private final DialectFactory dialectFactory;
 
-  public PaginationHandler(int pageSize) {
+  public PaginationHandler(int pageSize, DialectFactory dialectFactory) {
     this.pageSize = pageSize;
+    this.dialectFactory = dialectFactory;
   }
 
   /**
@@ -37,19 +45,22 @@ public class PaginationHandler {
   }
 
   /**
-   * Add pagination to a query.
+   * Add pagination to a query using database-specific dialect.
    *
    * Fetches PAGE_SIZE + 1 rows to detect if more data is available.
    * Formula: LIMIT (PAGE_SIZE + 1) OFFSET (page-1)*PAGE_SIZE
    *
-   * @param query SQL query
-   * @param page  Page number (1-based)
+   * @param query    SQL query
+   * @param page     Page number (1-based)
+   * @param metaData Database metadata for dialect detection
    * @return Query with pagination added
    */
-  public String addPagination(String query, int page) {
+  public String addPagination(String query, int page, DatabaseMetaData metaData) throws SQLException {
     if (page < 1) {
       throw new IllegalArgumentException("Page number must be >= 1");
     }
+
+    DatabaseDialect dialect = dialectFactory.getDialect(metaData);
 
     // Calculate offset
     int offset = (page - 1) * pageSize;
@@ -57,15 +68,13 @@ public class PaginationHandler {
     // Fetch one extra row to detect if more data is available
     int limit = pageSize + 1;
 
-    // Add LIMIT and OFFSET (works for PostgreSQL and SQLite)
-    String paginatedQuery = query.trim();
-    if (paginatedQuery.endsWith(";")) {
-      paginatedQuery = paginatedQuery.substring(0, paginatedQuery.length() - 1);
+    // Remove trailing semicolon if present
+    String trimmedQuery = query.trim();
+    if (trimmedQuery.endsWith(";")) {
+      trimmedQuery = trimmedQuery.substring(0, trimmedQuery.length() - 1);
     }
 
-    paginatedQuery += " LIMIT " + limit + " OFFSET " + offset;
-
-    return paginatedQuery;
+    return dialect.paginator().paginate(trimmedQuery, offset, limit);
   }
 
   /**

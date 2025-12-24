@@ -1,10 +1,13 @@
 package org.geekden.mcp.database.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.geekden.mcp.database.dialect.DialectFactory;
 import org.geekden.mcp.database.formatter.ResultSetFormatter;
 
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -20,6 +23,9 @@ import java.sql.Statement;
  */
 @ApplicationScoped
 public class SqlExecutionService {
+
+  @Inject
+  DialectFactory dialectFactory;
 
   /**
    * Execute a SQL query with pagination support.
@@ -43,14 +49,15 @@ public class SqlExecutionService {
       throw new IllegalArgumentException("Page size must be >= 1");
     }
 
-    PaginationHandler paginationHandler = new PaginationHandler(pageSize);
+    DatabaseMetaData metaData = connection.getMetaData();
+    PaginationHandler paginationHandler = new PaginationHandler(pageSize, dialectFactory);
 
     // Determine if this is a SELECT query that can be paginated
     boolean isPageable = paginationHandler.isPageable(query);
 
     String executedQuery = query;
     if (isPageable) {
-      executedQuery = paginationHandler.addPagination(query, page);
+      executedQuery = paginationHandler.addPagination(query, page, metaData);
     }
 
     // Execute the query
