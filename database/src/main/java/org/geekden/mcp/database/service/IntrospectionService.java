@@ -1,6 +1,9 @@
 package org.geekden.mcp.database.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.geekden.mcp.database.dialect.DatabaseDialect;
+import org.geekden.mcp.database.dialect.DialectFactory;
 import org.geekden.mcp.database.formatter.TableFormatter;
 
 import java.sql.DatabaseMetaData;
@@ -24,6 +27,9 @@ import java.util.TreeSet;
 @ApplicationScoped
 public class IntrospectionService {
 
+  @Inject
+  DialectFactory dialectFactory;
+
   /**
    * List all schemas in the database.
    *
@@ -31,51 +37,17 @@ public class IntrospectionService {
    * @return Formatted table of schemas
    */
   public String listSchemas(DatabaseMetaData metaData) throws SQLException {
-    List<String> headers = List.of("Schema");
-    List<List<String>> rows = new ArrayList<>();
+    DatabaseDialect dialect = dialectFactory.getDialect(metaData);
+    List<String> schemas = dialect.introspector().schemas(metaData);
 
-    try (ResultSet rs = metaData.getSchemas()) {
-      while (rs.next()) {
-        String schemaName = rs.getString("TABLE_SCHEM");
-        if (schemaName != null && !schemaName.isEmpty()) {
-          rows.add(TableFormatter.row(schemaName));
-        }
-      }
-    }
-
-    // For databases like SQLite that don't have traditional schemas,
-    // list catalogs instead
-    if (rows.isEmpty()) {
-      try (ResultSet rs = metaData.getCatalogs()) {
-        while (rs.next()) {
-          String catalogName = rs.getString("TABLE_CAT");
-          if (catalogName != null && !catalogName.isEmpty()) {
-            rows.add(TableFormatter.row(catalogName));
-          }
-        }
-      }
-    }
-
-    // TODO: Design and implement database dialect abstraction
-    // Current approach uses conditional checks (code smell) which doesn't scale.
-    // Need a proper pattern like Strategy or DatabaseDialect interface:
-    //   - DatabaseDialect interface with methods: getDefaultSchemas(), formatType(), etc.
-    //   - SQLiteDialect, PostgreSQLDialect implementations
-    //   - Factory to detect and instantiate correct dialect
-    //   - Inject dialect into services that need database-specific behavior
-    // This will make adding new databases cleaner and more maintainable.
-
-    // Special handling for SQLite: always has a "main" schema
-    if (rows.isEmpty()) {
-      String dbProductName = metaData.getDatabaseProductName();
-      if (dbProductName != null && dbProductName.toLowerCase().contains("sqlite")) {
-        rows.add(TableFormatter.row("main"));
-      }
-    }
-
-    if (rows.isEmpty()) {
+    if (schemas.isEmpty()) {
       return "No schemas found.";
     }
+
+    List<String> headers = List.of("Schema");
+    List<List<String>> rows = schemas.stream()
+        .map(TableFormatter::row)
+        .toList();
 
     return TableFormatter.format(headers, rows);
   }

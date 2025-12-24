@@ -1,6 +1,15 @@
 package org.geekden.mcp.database.service;
 
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import org.geekden.mcp.database.IsolatedDatabaseProfile;
+import org.geekden.mcp.database.dialect.DialectFactory;
 import org.junit.jupiter.api.Test;
+
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -9,11 +18,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * Tests for PaginationHandler.
  */
+@QuarkusTest
+@TestProfile(PaginationHandlerTest.Profile.class)
 class PaginationHandlerTest {
+
+  public static class Profile extends IsolatedDatabaseProfile {
+  }
+
+  @Inject
+  DialectFactory dialectFactory;
+
+  @Inject
+  Instance<Connection> connection;
 
   @Test
   void testIsPageable_selectQuery() {
-    PaginationHandler handler = new PaginationHandler(100);
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
     assertThat("Should detect SELECT query",
         handler.isPageable("SELECT * FROM users"), is(true));
@@ -30,7 +50,7 @@ class PaginationHandlerTest {
 
   @Test
   void testIsPageable_nonSelectQueries() {
-    PaginationHandler handler = new PaginationHandler(100);
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
     assertThat("Should not paginate INSERT",
         handler.isPageable("INSERT INTO users (name) VALUES ('test')"), is(false));
@@ -50,7 +70,7 @@ class PaginationHandlerTest {
 
   @Test
   void testIsPageable_selectWithExistingLimit() {
-    PaginationHandler handler = new PaginationHandler(100);
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
     assertThat("Should not paginate SELECT with existing LIMIT",
         handler.isPageable("SELECT * FROM users LIMIT 10"), is(false));
@@ -61,7 +81,7 @@ class PaginationHandlerTest {
 
   @Test
   void testIsPageable_emptyOrNull() {
-    PaginationHandler handler = new PaginationHandler(100);
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
     assertThat("Should handle null query",
         handler.isPageable(null), is(false));
@@ -74,97 +94,116 @@ class PaginationHandlerTest {
   }
 
   @Test
-  void testAddPagination_firstPage() {
-    PaginationHandler handler = new PaginationHandler(100);
+  void testAddPagination_firstPage() throws Exception {
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
-    String query = "SELECT * FROM users";
-    String result = handler.addPagination(query, 1);
+    try (Connection conn = connection.get()) {
+      DatabaseMetaData metaData = conn.getMetaData();
+      String query = "SELECT * FROM users";
+      String result = handler.addPagination(query, 1, metaData);
 
-    assertThat("Should add LIMIT 101 for first page",
-        result, containsString("LIMIT 101"));
+      assertThat("Should add LIMIT 101 for first page",
+          result, containsString("LIMIT 101"));
 
-    assertThat("Should add OFFSET 0 for first page",
-        result, containsString("OFFSET 0"));
+      assertThat("Should add OFFSET 0 for first page",
+          result, containsString("OFFSET 0"));
 
-    assertThat("Should preserve original query",
-        result, startsWith("SELECT * FROM users"));
+      assertThat("Should preserve original query",
+          result, startsWith("SELECT * FROM users"));
+    }
   }
 
   @Test
-  void testAddPagination_secondPage() {
-    PaginationHandler handler = new PaginationHandler(100);
+  void testAddPagination_secondPage() throws Exception {
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
-    String query = "SELECT * FROM users";
-    String result = handler.addPagination(query, 2);
+    try (Connection conn = connection.get()) {
+      DatabaseMetaData metaData = conn.getMetaData();
+      String query = "SELECT * FROM users";
+      String result = handler.addPagination(query, 2, metaData);
 
-    assertThat("Should add LIMIT 101 for second page",
-        result, containsString("LIMIT 101"));
+      assertThat("Should add LIMIT 101 for second page",
+          result, containsString("LIMIT 101"));
 
-    assertThat("Should add OFFSET 100 for second page",
-        result, containsString("OFFSET 100"));
+      assertThat("Should add OFFSET 100 for second page",
+          result, containsString("OFFSET 100"));
+    }
   }
 
   @Test
-  void testAddPagination_thirdPage() {
-    PaginationHandler handler = new PaginationHandler(100);
+  void testAddPagination_thirdPage() throws Exception {
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
-    String query = "SELECT id, name FROM users WHERE active = true";
-    String result = handler.addPagination(query, 3);
+    try (Connection conn = connection.get()) {
+      DatabaseMetaData metaData = conn.getMetaData();
+      String query = "SELECT id, name FROM users WHERE active = true";
+      String result = handler.addPagination(query, 3, metaData);
 
-    assertThat("Should add LIMIT 101 for third page",
-        result, containsString("LIMIT 101"));
+      assertThat("Should add LIMIT 101 for third page",
+          result, containsString("LIMIT 101"));
 
-    assertThat("Should add OFFSET 200 for third page",
-        result, containsString("OFFSET 200"));
+      assertThat("Should add OFFSET 200 for third page",
+          result, containsString("OFFSET 200"));
 
-    assertThat("Should preserve original query",
-        result, startsWith("SELECT id, name FROM users WHERE active = true"));
+      assertThat("Should preserve original query",
+          result, startsWith("SELECT id, name FROM users WHERE active = true"));
+    }
   }
 
   @Test
-  void testAddPagination_customPageSize() {
-    PaginationHandler handler = new PaginationHandler(50);
+  void testAddPagination_customPageSize() throws Exception {
+    PaginationHandler handler = new PaginationHandler(50, dialectFactory);
 
-    String query = "SELECT * FROM users";
-    String result = handler.addPagination(query, 2);
+    try (Connection conn = connection.get()) {
+      DatabaseMetaData metaData = conn.getMetaData();
+      String query = "SELECT * FROM users";
+      String result = handler.addPagination(query, 2, metaData);
 
-    assertThat("Should add LIMIT 51 for page size 50",
-        result, containsString("LIMIT 51"));
+      assertThat("Should add LIMIT 51 for page size 50",
+          result, containsString("LIMIT 51"));
 
-    assertThat("Should add OFFSET 50 for second page with page size 50",
-        result, containsString("OFFSET 50"));
+      assertThat("Should add OFFSET 50 for second page with page size 50",
+          result, containsString("OFFSET 50"));
+    }
   }
 
   @Test
-  void testAddPagination_removesTrailingSemicolon() {
-    PaginationHandler handler = new PaginationHandler(100);
+  void testAddPagination_removesTrailingSemicolon() throws Exception {
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
-    String query = "SELECT * FROM users;";
-    String result = handler.addPagination(query, 1);
+    try (Connection conn = connection.get()) {
+      DatabaseMetaData metaData = conn.getMetaData();
+      String query = "SELECT * FROM users;";
+      String result = handler.addPagination(query, 1, metaData);
 
-    assertThat("Should not have double semicolon",
-        result, not(containsString(";;")));
+      assertThat("Should not have double semicolon",
+          result, not(containsString(";;")));
 
-    assertThat("Should end with OFFSET clause",
-        result, endsWith("OFFSET 0"));
+      assertThat("Should end with OFFSET clause",
+          result, endsWith("OFFSET 0"));
+    }
   }
 
   @Test
-  void testAddPagination_invalidPageNumber() {
-    PaginationHandler handler = new PaginationHandler(100);
+  void testAddPagination_invalidPageNumber() throws Exception {
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      handler.addPagination("SELECT * FROM users", 0);
-    }, "Should throw exception for page 0");
+    try (Connection conn = connection.get()) {
+      DatabaseMetaData metaData = conn.getMetaData();
 
-    assertThrows(IllegalArgumentException.class, () -> {
-      handler.addPagination("SELECT * FROM users", -1);
-    }, "Should throw exception for negative page");
+      assertThrows(IllegalArgumentException.class, () -> {
+        handler.addPagination("SELECT * FROM users", 0, metaData);
+      }, "Should throw exception for page 0");
+
+      assertThrows(IllegalArgumentException.class, () -> {
+        handler.addPagination("SELECT * FROM users", -1, metaData);
+      }, "Should throw exception for negative page");
+    }
   }
 
   @Test
   void testHasMoreData() {
-    PaginationHandler handler = new PaginationHandler(100);
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
     assertThat("Should have more data when 101 rows fetched",
         handler.hasMoreData(101), is(true));
@@ -181,7 +220,7 @@ class PaginationHandlerTest {
 
   @Test
   void testGetRowsToDisplay() {
-    PaginationHandler handler = new PaginationHandler(100);
+    PaginationHandler handler = new PaginationHandler(100, dialectFactory);
 
     assertThat("Should display 100 rows when 101 fetched",
         handler.getRowsToDisplay(101), is(100));
@@ -198,7 +237,7 @@ class PaginationHandlerTest {
 
   @Test
   void testGetPageSize() {
-    PaginationHandler handler = new PaginationHandler(75);
+    PaginationHandler handler = new PaginationHandler(75, dialectFactory);
 
     assertThat("Should return configured page size",
         handler.getPageSize(), is(75));
