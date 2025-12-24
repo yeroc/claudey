@@ -28,27 +28,47 @@ class DialectFactoryTest {
   Instance<Connection> connection;
 
   @Test
-  void testGetDialectForSQLite() throws Exception {
+  void testGetDialectForCurrentDatabase() throws Exception {
     try (Connection conn = connection.get()) {
       DatabaseMetaData metaData = conn.getMetaData();
+      String dbName = metaData.getDatabaseProductName().toLowerCase();
       DatabaseDialect dialect = dialectFactory.getDialect(metaData);
 
-      assertThat("Should return SQLite dialect", dialect.getName(), is("SQLite"));
+      if (dbName.contains("sqlite")) {
+        assertThat("Should return SQLite dialect for SQLite database",
+            dialect.getName(), is("SQLite"));
+      } else if (dbName.contains("postgresql") || dbName.contains("postgres")) {
+        assertThat("Should return Standard SQL dialect for PostgreSQL",
+            dialect.getName(), is("Standard SQL"));
+      } else {
+        assertThat("Should return Standard SQL dialect as fallback",
+            dialect.getName(), is("Standard SQL"));
+      }
+
       assertThat("Should have introspector", dialect.introspector(), is(notNullValue()));
       assertThat("Should have paginator", dialect.paginator(), is(notNullValue()));
     }
   }
 
   @Test
-  void testSQLiteIntrospector() throws Exception {
+  void testIntrospectorForCurrentDatabase() throws Exception {
     try (Connection conn = connection.get()) {
       DatabaseMetaData metaData = conn.getMetaData();
+      String dbName = metaData.getDatabaseProductName().toLowerCase();
       DatabaseDialect dialect = dialectFactory.getDialect(metaData);
 
       List<String> schemas = dialect.introspector().schemas(metaData);
 
       assertThat("Should return schemas", schemas, is(notNullValue()));
-      assertThat("Should contain 'main' schema", schemas, contains("main"));
+      assertThat("Should return non-empty schema list", schemas, is(not(empty())));
+
+      if (dbName.contains("sqlite")) {
+        assertThat("SQLite should return 'main' schema",
+            schemas, contains("main"));
+      } else if (dbName.contains("postgresql") || dbName.contains("postgres")) {
+        assertThat("PostgreSQL should have schemas including public or information_schema",
+            schemas, anyOf(hasItem("public"), hasItem("information_schema")));
+      }
     }
   }
 
