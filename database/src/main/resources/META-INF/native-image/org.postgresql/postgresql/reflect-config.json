@@ -1,0 +1,11 @@
+[
+  {
+    "name": "org.postgresql.Driver",
+    "methods": [
+      {
+        "name": "<init>",
+        "parameterTypes": []
+      }
+    ]
+  }
+]
