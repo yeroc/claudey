@@ -30,7 +30,10 @@
     <system-stubs.version>2.1.8</system-stubs.version>
     <graalvm-metadata.version>0.11.3</graalvm-metadata.version>
     
-    <native.build.args></native.build.args>
+    <!-- Runtime defaults baked into native binaries. Capping the young generation keeps idle
+         RSS small; the default lets it grow to ~60 MB before the first collection. -->
+    <native.runtime.args>-R:MaxNewSize=8m</native.runtime.args>
+    <native.build.args>${native.runtime.args}</native.build.args>
   </properties>
 
   <dependencyManagement>
@@ -160,7 +163,7 @@
       </activation>
       <properties>
         <!-- For GraalVM 23+, use: dash-dash-static-nolibc -->
-        <native.build.args>-H:+StaticExecutableWithDynamicLibC</native.build.args>
+        <native.build.args>${native.runtime.args},-H:+StaticExecutableWithDynamicLibC</native.build.args>
       </properties>
     </profile>
   </profiles>
