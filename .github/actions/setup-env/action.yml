@@ -19,7 +19,7 @@ runs:
   steps:
     - name: Cache Maven packages
       id: cache-maven
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.m2/repository
         key: maven-${{ hashFiles('**/pom.xml') }}
@@ -28,7 +28,7 @@ runs:
 
     - name: Set up JDK ${{ inputs.java-version }}
       if: inputs.type == 'standard'
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v6
       with:
         java-version: ${{ inputs.java-version }}
         distribution: 'temurin'
