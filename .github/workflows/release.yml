@@ -71,10 +71,10 @@ jobs:
     needs: [setup, test, build-jar, build-native]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -104,7 +104,7 @@ jobs:
               .github/release-template.md > release-notes.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           body_path: release-notes.md
           files: release-files/*
