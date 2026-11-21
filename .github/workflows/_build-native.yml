@@ -44,7 +44,7 @@ jobs:
         uses: ./.github/actions/setup-env
         with:
           type: 'native'
-          java-version: '21'
+          java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
@@ -77,7 +77,7 @@ jobs:
         uses: ./.github/actions/setup-env
         with:
           type: 'native'
-          java-version: '21'
+          java-version: '25'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native binary
